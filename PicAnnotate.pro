@@ -13,6 +13,7 @@ SOURCES += \
     picannotate.cpp
 
 HEADERS += \
+    globalVar.h \
     picannotate.h
 
 FORMS += \
@@ -27,3 +28,6 @@ CONFIG += embed_translations
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+INCLUDEPATH += /usr/local/include/opencv4
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui
