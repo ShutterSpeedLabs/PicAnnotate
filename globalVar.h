@@ -18,4 +18,5 @@ unsigned int CurrentFileNumber;
 QStringListModel model;
 QDir directory;
 
+
 #endif // GLOBALVAR_H

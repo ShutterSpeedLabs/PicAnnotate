@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <opencv2/opencv.hpp>
 #include <QImage>
+#include <string>
 #include "globalVar.h"
 
 PicAnnotate::PicAnnotate(QWidget *parent)
@@ -50,6 +51,8 @@ void PicAnnotate::on_actionOpen_Folder_triggered()
     CurrentFileNumber = 1;
     model.setStringList(fileList);
     ui->listViewFiles->setModel(&model);
+    ui->lblFilesInFolder->setText(std::to_string(FilesInFolder).c_str());
+    ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
 }
 
 
@@ -93,6 +96,8 @@ void PicAnnotate::on_next_button_clicked()
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
         ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
+        ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
+        ui->listViewFiles->setCurrentIndex(model.index(CurrentFileNumber, 0));
         CurrentFileNumber++;
     }
 }
@@ -108,7 +113,8 @@ void PicAnnotate::on_pre_button_clicked()
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
         ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-
+        ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
+        ui->listViewFiles->setCurrentIndex(model.index(CurrentFileNumber, 0));
     }
 }
 
@@ -116,5 +122,24 @@ void PicAnnotate::on_pre_button_clicked()
 void PicAnnotate::on_actionExit_triggered()
 {
      QApplication::quit();
+}
+
+
+void PicAnnotate::on_listViewFiles_clicked(const QModelIndex &index)
+{
+    CurrentFileNumber = index.row();
+    imageFileName = fileList.at(CurrentFileNumber);
+    absoluteFilePath = directory.absoluteFilePath(imageFileName);
+    pixmap.load(absoluteFilePath);
+    imageItem->setPixmap(pixmap);
+    ui->graphicsView->setScene(scene);
+    ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
+    ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
+}
+
+
+void PicAnnotate::on_listViewFiles_doubleClicked(const QModelIndex &index)
+{
+
 }
 

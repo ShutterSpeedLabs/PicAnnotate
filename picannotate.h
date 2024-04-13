@@ -34,6 +34,10 @@ private slots:
 
     void on_actionExit_triggered();
 
+    void on_listViewFiles_clicked(const QModelIndex &index);
+
+    void on_listViewFiles_doubleClicked(const QModelIndex &index);
+
 private:
     Ui::PicAnnotate *ui;
 };
