@@ -79,13 +79,10 @@ void PicAnnotate::on_actionOpen_Folder_triggered()
 
     // Load first image
     pixmap.load(absoluteFilePath);
-<<<<<<< HEAD
     zoomScale = 1;
     pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
-=======
 
     // Set image to be displayed
->>>>>>> 889e6378989480427973fe13880a8232307ef168
     imageItem->setPixmap(pixmap);
 
     // Set scene and view
@@ -157,29 +154,23 @@ void PicAnnotate::on_next_button_clicked()
         imageFileName = fileList.at(CurrentFileNumber);
         // Set the absolute path of the next image
         absoluteFilePath = directory.absoluteFilePath(imageFileName);
-<<<<<<< HEAD
         zoomScale = 1;
         pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
-=======
         // Load the next image
->>>>>>> 889e6378989480427973fe13880a8232307ef168
         pixmap.load(absoluteFilePath);
         // Set the image as the scene of the graphics view
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
         // Zoom the image to fit the view, keeping the aspect ratio
         ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-<<<<<<< HEAD
         ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
         ui->listViewFiles->setCurrentIndex(model.index(CurrentFileNumber, 0));
-=======
         // Update the current file number
->>>>>>> 889e6378989480427973fe13880a8232307ef168
         CurrentFileNumber++;
     }
 }
 
-}
+
 
 
 /**
@@ -199,16 +190,13 @@ void PicAnnotate::on_pre_button_clicked()
         imageFileName = fileList.at(CurrentFileNumber);
         // Set the absolute path of the previous image
         absoluteFilePath = directory.absoluteFilePath(imageFileName);
-<<<<<<< HEAD
         zoomScale = 1;
         pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
         pixmap.load(absoluteFilePath);
       // ui->graphicsView->set
-=======
         // Load the previous image
         pixmap.load(absoluteFilePath);
         // Set the image as the scene of the graphics view
->>>>>>> 889e6378989480427973fe13880a8232307ef168
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
         // Zoom the image to fit the view, keeping the aspect ratio
