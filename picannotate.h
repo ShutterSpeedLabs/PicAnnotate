@@ -18,6 +18,7 @@ class PicAnnotate : public QMainWindow
     QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem;
     QGraphicsScene *scene = new QGraphicsScene;
     QPixmap pixmap;
+    QPixmap pixmapScale;
 
 public:
     PicAnnotate(QWidget *parent = nullptr);
@@ -37,6 +38,10 @@ private slots:
     void on_listViewFiles_clicked(const QModelIndex &index);
 
     void on_listViewFiles_doubleClicked(const QModelIndex &index);
+
+    void on_ZoomIn_clicked();
+
+    void on_ZoomOut_clicked();
 
 private:
     Ui::PicAnnotate *ui;

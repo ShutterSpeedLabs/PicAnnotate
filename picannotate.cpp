@@ -45,6 +45,8 @@ void PicAnnotate::on_actionOpen_Folder_triggered()
     imageFileName = fileList.at(0);
     absoluteFilePath = directory.absoluteFilePath(imageFileName);
     pixmap.load(absoluteFilePath);
+    zoomScale = 1;
+    pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
     imageItem->setPixmap(pixmap);
     ui->graphicsView->setScene(scene);
     ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
@@ -92,6 +94,8 @@ void PicAnnotate::on_next_button_clicked()
     if(CurrentFileNumber<FilesInFolder && (FilesInFolder>1)){
         imageFileName = fileList.at(CurrentFileNumber);
         absoluteFilePath = directory.absoluteFilePath(imageFileName);
+        zoomScale = 1;
+        pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
         pixmap.load(absoluteFilePath);
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
@@ -109,7 +113,10 @@ void PicAnnotate::on_pre_button_clicked()
         CurrentFileNumber--;
         imageFileName = fileList.at(CurrentFileNumber);
         absoluteFilePath = directory.absoluteFilePath(imageFileName);
+        zoomScale = 1;
+        pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
         pixmap.load(absoluteFilePath);
+      // ui->graphicsView->set
         imageItem->setPixmap(pixmap);
         ui->graphicsView->setScene(scene);
         ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
@@ -141,5 +148,48 @@ void PicAnnotate::on_listViewFiles_clicked(const QModelIndex &index)
 void PicAnnotate::on_listViewFiles_doubleClicked(const QModelIndex &index)
 {
 
+}
+
+
+void PicAnnotate::on_ZoomIn_clicked()
+{
+    #ifdef QT_DEBUG
+        qDebug() << "zoomScale: " << zoomScale;
+        qDebug() << "CurrentFileNumber: " << CurrentFileNumber;
+    #endif
+    if(CurrentFileNumber>=1 && zoomScale<2){
+        zoomScale = zoomScale + 0.1;
+        pixmapScale = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
+        imageItem->setPixmap(pixmapScale);
+        imageItem->setScale(zoomScale);
+        // Update the view to reflect the changes
+        imageItem->update();
+
+        // Set the center point of the image item
+       // imageItem->setTransform(QTransform().scale(zoomScale).translate(imageItem->boundingRect().width() / 2, imageItem->boundingRect().height() / 2));
+       // ui->graphicsView->setScene(scene);
+    }
+}
+
+
+void PicAnnotate::on_ZoomOut_clicked()
+{
+    #ifdef QT_DEBUG
+        qDebug() << "zoomScale: " << zoomScale;
+        qDebug() << "CurrentFileNumber: " << CurrentFileNumber;
+    #endif
+    if(CurrentFileNumber>=1 && zoomScale<=2.2 && zoomScale>=1.1){
+        zoomScale = zoomScale - 0.1;
+        pixmapScale = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
+        imageItem->setPixmap(pixmapScale);
+        imageItem->setScale(zoomScale);
+        // Update the view to reflect the changes
+        imageItem->update();
+
+        // Set the center point of the image item
+      // imageItem->setTransform(QTransform().scale(zoomScale).translate(imageItem->boundingRect().width() / 2, imageItem->boundingRect().height() / 2));
+
+      //  ui->graphicsView->setScene(scene);
+    }
 }
 
