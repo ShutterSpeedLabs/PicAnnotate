@@ -247,6 +247,7 @@ void PicAnnotate::on_ZoomIn_clicked()
         imageItem->setPixmap(pixmapScale);
         imageItem->setScale(zoomScale);
         // Update the view to reflect the changes
+        scene->setSceneRect(QRectF(0,0,pixmap.width() * zoomScale,pixmap.height() * zoomScale));
         imageItem->update();
 
         // Set the center point of the image item
@@ -268,6 +269,7 @@ void PicAnnotate::on_ZoomOut_clicked()
         imageItem->setPixmap(pixmapScale);
         imageItem->setScale(zoomScale);
         // Update the view to reflect the changes
+        scene->setSceneRect(QRectF(0,0,pixmap.width() * zoomScale,pixmap.height() * zoomScale));
         imageItem->update();
 
         // Set the center point of the image item
