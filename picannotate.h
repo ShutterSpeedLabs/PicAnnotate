@@ -15,6 +15,7 @@ QT_END_NAMESPACE
 class PicAnnotate : public QMainWindow
 {
     Q_OBJECT
+public:
     QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem;
     QGraphicsScene *scene = new QGraphicsScene;
     QPixmap pixmap;
@@ -37,11 +38,11 @@ private slots:
 
     void on_listViewFiles_clicked(const QModelIndex &index);
 
-    void on_listViewFiles_doubleClicked(const QModelIndex &index);
-
     void on_ZoomIn_clicked();
 
     void on_ZoomOut_clicked();
+
+    void on_actionRead_YAML_triggered();
 
 private:
     Ui::PicAnnotate *ui;
