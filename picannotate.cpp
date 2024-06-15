@@ -285,7 +285,7 @@ void PicAnnotate::on_actionRead_YAML_triggered()
             #ifdef QT_DEBUG
                     qDebug() << "Selected file:" <<  fileName;
             #endif
-                 config = readYoloConfig( fileName.toStdString());
+                 config = readYoloConfig(fileName.toStdString());
 //                 for (const auto& className : config.classNames) {
 //                     classList << QString::fromStdString(className);
 // #ifdef QT_DEBUG
@@ -307,11 +307,40 @@ void PicAnnotate::on_actionRead_YAML_triggered()
                 //classModel.setStringList(classList);
                 ui->listViewClass->setModel(& classModel);
                 ui->lblTotalnc->setText(std::to_string( config.numClasses).c_str());
-                 loadStatus = loadDataset(& config,  fileName, ui);
+                loadStatus = loadDataset(& config,  fileName, ui);
                 if( loadStatus<0){
                     QMessageBox::information(this, "Message", "Dataset not loaded");
 
                 }
+
+                // // Get number of files in folder
+                // FilesInFolder =  fileList.size();
+                // qDebug() << "Files in folder :" <<  FilesInFolder;
+
+                // Set first image file name from folder
+                imageFileName =  fileList.at(0);
+
+                // Set absolute path of image file
+                absoluteFilePath =  directory.absoluteFilePath( imageFileName);
+
+                // Load first image
+                pixmap.load( absoluteFilePath);
+                zoomScale = 1;
+                pixmap = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
+
+                // Set current file number to 1
+                CurrentFileNumber = 1;
+                QPainter painter(&pixmap);
+                painter.setPen(Qt::blue);  // Set the pen color to blue
+                painter.drawRect(50, 50, 200, 100);  // Draw a rectangle at (50, 50) with width 200 and height 100
+
+                // Set image to be displayed
+                imageItem->setPixmap(pixmap);
+
+                // Set scene and view
+                ui->graphicsView->setScene(scene);
+                ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
+
 
         }
 

@@ -165,7 +165,7 @@ int loadDataset(YoloConfig *config, QString fileName, Ui::PicAnnotate* ui){
     int readImgStatus = readImagesInFolder( testImagePath, ui);
 
 
-    return -1;
+    return readImgStatus;
 }
 
 int readImagesInFolder(QString folderPath, Ui::PicAnnotate* ui){
@@ -201,26 +201,12 @@ int readImagesInFolder(QString folderPath, Ui::PicAnnotate* ui){
     // Set absolute path of image file
     absoluteFilePath = directory.absoluteFilePath(imageFileName);
 
-
-    // // Load first image
-    //pixmap.load(absoluteFilePath);
-    // zoomScale = 1;
-    // pixmap = pixmap.scaled(pixmap.width() * zoomScale, pixmap.height() * zoomScale);
-
-    // // Set image to be displayed
-    // imageItem->setPixmap(pixmap);
-
-    // // Set scene and view
-
-    // ui->graphicsView->setScene(scanf);
-    // ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-
-    // Set current file number to 1
-    CurrentFileNumber = 1;
-
     // Set model for files ListView
     model.setStringList(fileList);
     ui->listViewFiles->setModel(&model);
     ui->lblFilesInFolder->setText(std::to_string(FilesInFolder).c_str());
     ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
+    return 0;
 }
+
+
