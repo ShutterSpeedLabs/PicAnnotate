@@ -51,6 +51,7 @@ private slots:
     void loadImageAndAnnotations(int index);
     void initializeColorMap();
     void updateViewZoom();
+    void updateAnnotations();
 
 private:
     Ui::PicAnnotate *ui;

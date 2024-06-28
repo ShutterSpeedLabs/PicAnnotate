@@ -267,11 +267,13 @@ void PicAnnotate::on_actionRead_YAML_triggered()
         for (const auto& className : config.classNames) {
             QStandardItem* item = new QStandardItem(QString::fromStdString(className));
             item->setCheckable(true);
-            item->setCheckState(Qt::Unchecked);
+            item->setCheckState(Qt::Checked);
             classModel.appendRow(item);
         }
         ui->listViewClass->setModel(&classModel);
         ui->lblTotalnc->setText(QString::number(config.numClasses));
+
+        connect(&classModel, &QStandardItemModel::itemChanged, this, &PicAnnotate::updateAnnotations);
 
         // Load dataset
         loadStatus = loadDataset(&config, ui, selectedFolder);
@@ -318,21 +320,26 @@ void PicAnnotate::updateAnnotatedPixmap()
             QStringList parts = line.split(' ');
             if (parts.size() == 5) {
                 int classId = parts[0].toInt();
-                float centerX = parts[1].toFloat() * annotatedPixmap.width();
-                float centerY = parts[2].toFloat() * annotatedPixmap.height();
-                float width = parts[3].toFloat() * annotatedPixmap.width();
-                float height = parts[4].toFloat() * annotatedPixmap.height();
 
-                QColor color = classColorMap.value(classId, Qt::red);
-                painter.setPen(QPen(color, 2));
-                painter.drawRect(centerX - width/2, centerY - height/2, width, height);
+                // Check if the class is checked in the list view
+                QStandardItem* item = classModel.item(classId);
+                if (item && item->checkState() == Qt::Checked) {
+                    float centerX = parts[1].toFloat() * annotatedPixmap.width();
+                    float centerY = parts[2].toFloat() * annotatedPixmap.height();
+                    float width = parts[3].toFloat() * annotatedPixmap.width();
+                    float height = parts[4].toFloat() * annotatedPixmap.height();
 
-                QColor textColor = color.lightness() > 128 ? Qt::black : Qt::white;
-                painter.setPen(textColor);
-                painter.setFont(QFont("Arial", 10, QFont::Bold));
-                painter.drawText(QRectF(centerX - width/2, centerY - height/2 - 20, width, 20),
-                                 Qt::AlignCenter,
-                                 QString::fromStdString(config.classNames[classId]));
+                    QColor color = classColorMap.value(classId, Qt::red);
+                    painter.setPen(QPen(color, 2));
+                    painter.drawRect(centerX - width/2, centerY - height/2, width, height);
+
+                    QColor textColor = color.lightness() > 128 ? Qt::black : Qt::white;
+                    painter.setPen(textColor);
+                    painter.setFont(QFont("System", 10, QFont::System));
+                    painter.drawText(QRectF(centerX - width/2, centerY - height/2 - 20, width, 20),
+                                     Qt::AlignCenter,
+                                     QString::fromStdString(config.classNames[classId]));
+                }
             }
         }
         file.close();
@@ -422,4 +429,10 @@ void PicAnnotate::on_ZoomOut_clicked()
         zoomScale = zoomScale - 0.1;
         updateViewZoom();
     }
+}
+
+void PicAnnotate::updateAnnotations()
+{
+    updateAnnotatedPixmap();
+    updateView();
 }
