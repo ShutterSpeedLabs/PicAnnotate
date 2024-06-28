@@ -12,6 +12,12 @@ struct YoloConfig {
     std::string valFolder;
     int numClasses;
     std::vector<std::string> classNames;
+    std::string trainImagesPath;
+    std::string trainLabelsPath;
+    std::string testImagesPath;
+    std::string testLabelsPath;
+    std::string valImagesPath;
+    std::string valLabelsPath;
 };
 
 YoloConfig readYoloConfig(const std::string& filename);

@@ -17,156 +17,198 @@ int numberOfTestLabels = 0;
 int numberOfTrainLabels = 0;
 int numberOfValLabels = 0;
 
-int loadDataset(YoloConfig *config, QString fileName, Ui::PicAnnotate* ui){
+// int loadDataset(YoloConfig *config, QString fileName, Ui::PicAnnotate* ui){
 
-    QString testFolderPath = QString::fromStdString(config->testFolder);
-    QString valFolderPath = QString::fromStdString(config->valFolder);
-    QString trainFolderPath = QString::fromStdString(config->trainFolder);
+//     QString testFolderPath = QString::fromStdString(config->testFolder);
+//     QString valFolderPath = QString::fromStdString(config->valFolder);
+//     QString trainFolderPath = QString::fromStdString(config->trainFolder);
 
-    qDebug() << "Test Folder: " << testFolderPath;
-    qDebug() << "Val Folder: " << valFolderPath;
-    qDebug() << "Train Folder: " << trainFolderPath;
+//     qDebug() << "Test Folder: " << testFolderPath;
+//     qDebug() << "Val Folder: " << valFolderPath;
+//     qDebug() << "Train Folder: " << trainFolderPath;
 
-    QFileInfo fileInfo(fileName);
+//     QFileInfo fileInfo(fileName);
 
-    QString folder = fileInfo.path(); // Get the folder path
-    QString fileName1 = fileInfo.fileName(); // Get the filename
+//     QString folder = fileInfo.path(); // Get the folder path
+//     QString fileName1 = fileInfo.fileName(); // Get the filename
 
-    // Output the folder and filename
-    qDebug() << "Folder: " << folder;
-    qDebug() << "Filename: " << fileName1;
+//     // Output the folder and filename
+//     qDebug() << "Folder: " << folder;
+//     qDebug() << "Filename: " << fileName1;
 
-    // QString testImagePath = folder + QDir::cleanPath(testFolderPath);
-    // QString trainImagePath = folder + QDir::cleanPath(trainFolderPath);
-    // QString valImagePath = folder + QDir::cleanPath(valFolderPath);
+//     // QString testImagePath = folder + QDir::cleanPath(testFolderPath);
+//     // QString trainImagePath = folder + QDir::cleanPath(trainFolderPath);
+//     // QString valImagePath = folder + QDir::cleanPath(valFolderPath);
 
 
-    QString testImagePath = folder + testFolderPath.remove("..");
-    QString trainImagePath = folder + trainFolderPath.remove("..");
-    QString valImagePath = folder + valFolderPath.remove("..");
+//     QString testImagePath = folder + testFolderPath.remove("..");
+//     QString trainImagePath = folder + trainFolderPath.remove("..");
+//     QString valImagePath = folder + valFolderPath.remove("..");
 
-    QStringList testLabelFolderList = testImagePath.split(QDir::separator());
-    QStringList trainLabelFolderList = trainImagePath.split(QDir::separator());
-    QStringList valLabelFolderList = valImagePath.split(QDir::separator());
+//     QStringList testLabelFolderList = testImagePath.split(QDir::separator());
+//     QStringList trainLabelFolderList = trainImagePath.split(QDir::separator());
+//     QStringList valLabelFolderList = valImagePath.split(QDir::separator());
 
-    qDebug() << "testLabelFolderList.first(): " << testLabelFolderList[testLabelFolderList.size() - 2];
-    qDebug() << "trainLabelFolderList.first(): " << trainLabelFolderList[trainLabelFolderList.size() - 2];
-    qDebug() << "valLabelFolderList.first(): " << valLabelFolderList[valLabelFolderList.size() - 2];
+//     qDebug() << "testLabelFolderList.first(): " << testLabelFolderList[testLabelFolderList.size() - 2];
+//     qDebug() << "trainLabelFolderList.first(): " << trainLabelFolderList[trainLabelFolderList.size() - 2];
+//     qDebug() << "valLabelFolderList.first(): " << valLabelFolderList[valLabelFolderList.size() - 2];
 
-    QString testLabelPath = folder + '/' + testLabelFolderList[testLabelFolderList.size() - 2] + "/labels";
-    QString trainLabelPath = folder + '/' + trainLabelFolderList[trainLabelFolderList.size() - 2] + "/labels";
-    QString valLabelPath = folder + '/' + valLabelFolderList[valLabelFolderList.size() - 2] + "/labels";
+//     QString testLabelPath = folder + '/' + testLabelFolderList[testLabelFolderList.size() - 2] + "/labels";
+//     QString trainLabelPath = folder + '/' + trainLabelFolderList[trainLabelFolderList.size() - 2] + "/labels";
+//     QString valLabelPath = folder + '/' + valLabelFolderList[valLabelFolderList.size() - 2] + "/labels";
 
-    qDebug() << "testImagePath: " << testImagePath;
-    qDebug() << "trainImagePath: " << trainImagePath;
-    qDebug() << "valImagePath: " << valImagePath;
+//     qDebug() << "testImagePath: " << testImagePath;
+//     qDebug() << "trainImagePath: " << trainImagePath;
+//     qDebug() << "valImagePath: " << valImagePath;
 
-    qDebug() << "testLabelPath: " << testLabelPath;
-    qDebug() << "trainLabelPath: " << trainLabelPath;
-    qDebug() << "valLabelPath: " << valLabelPath;
+//     qDebug() << "testLabelPath: " << testLabelPath;
+//     qDebug() << "trainLabelPath: " << trainLabelPath;
+//     qDebug() << "valLabelPath: " << valLabelPath;
+
+//     QStringList imageFilters;
+//     QStringList labelFilters;
+
+//     imageFilters << "*.jpg" << "*.png";
+//     labelFilters << "*.txt";
+
+//     QDir dir(testImagePath);
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfTestImages = jpgPngFiles.size();
+
+//         qDebug() << "Number of JPG and PNG files in folder:" << numberOfTestImages;
+//         qDebug() << "TEST Folder exists!";
+
+//     } else {
+//         qDebug() << "TEST Folder does not exist!";
+//     }
+
+//     dir = trainImagePath;
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfTrainImages = jpgPngFiles.size();
+
+//         qDebug() << "Number of JPG and PNG files in folder:" << numberOfTrainImages;
+//         qDebug() << "Train Folder exists!";
+//     } else {
+//         qDebug() << "Train Folder does not exist!";
+//     }
+
+//     dir = valImagePath;
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfValImages = jpgPngFiles.size();
+
+//         qDebug() << "Number of JPG and PNG files in folder:" << numberOfValImages;
+//         qDebug() << "Val Folder exists!";
+//     } else {
+//         qDebug() << "Val Folder does not exist!";
+//     }
+
+//     dir = testLabelPath;
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfTestLabels = labelFiles.size();
+
+//         qDebug() << "test label files in folder:" << numberOfTestLabels;
+//         qDebug() << "test label Folder exists!";
+//     } else {
+//         qDebug() << "test label Folder does not exist!";
+//     }
+
+//     dir = trainLabelPath;
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfTrainLabels = labelFiles.size();
+
+//         qDebug() << "Train label files in folder:" << numberOfTrainLabels;
+//         qDebug() << "Train label Folder exists!";
+//     } else {
+//         qDebug() << "Train label Folder does not exist!";
+//     }
+
+//     dir = valLabelPath;
+
+//     if (dir.exists()) {
+//         // Get the list of JPG and PNG files in the folder
+//         QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
+
+//         // Get the number of JPG and PNG files in the folder
+//         numberOfValLabels = labelFiles.size();
+
+//         qDebug() << "Val label files in folder:" << numberOfValLabels;
+//         qDebug() << "Val label Folder exists!";
+//     } else {
+//         qDebug() << "Val label Folder does not exist!";
+//     }
+
+//     int readImgStatus = readImagesInFolder( testImagePath, ui);
+
+
+//     return readImgStatus;
+// }
+
+int loadDataset(YoloConfig *config, Ui::PicAnnotate* ui, QString selectedFolder){
+    QString imagePath;
+    QString labelPath;
+
+    if (selectedFolder == "train") {
+        imagePath = QString::fromStdString(config->trainImagesPath);
+        labelPath = QString::fromStdString(config->trainLabelsPath);
+    } else if (selectedFolder == "test") {
+        imagePath = QString::fromStdString(config->testImagesPath);
+        labelPath = QString::fromStdString(config->testLabelsPath);
+    } else if (selectedFolder == "val") {
+        imagePath = QString::fromStdString(config->valImagesPath);
+        labelPath = QString::fromStdString(config->valLabelsPath);
+    } else {
+        return -1; // Invalid folder selected
+    }
+
+    qDebug() << "Selected Image Path: " << imagePath;
+    qDebug() << "Selected Label Path: " << labelPath;
 
     QStringList imageFilters;
-    QStringList labelFilters;
+    imageFilters << "*.jpg" << "*.png" << "*.jpeg" << "*.bmp";
 
-    imageFilters << "*.jpg" << "*.png";
-    labelFilters << "*.txt";
+    QDir imageDir(imagePath);
+    QDir labelDir(labelPath);
 
-    QDir dir(testImagePath);
+    int numberOfImages = imageDir.entryList(imageFilters, QDir::Files).size();
+    int numberOfLabels = labelDir.entryList(QStringList() << "*.txt", QDir::Files).size();
 
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
+    qDebug() << "Number of Images in " << selectedFolder << ": " << numberOfImages;
+    qDebug() << "Number of Labels in " << selectedFolder << ": " << numberOfLabels;
 
-        // Get the number of JPG and PNG files in the folder
-        numberOfTestImages = jpgPngFiles.size();
-
-        qDebug() << "Number of JPG and PNG files in folder:" << numberOfTestImages;
-        qDebug() << "TEST Folder exists!";
-
-    } else {
-        qDebug() << "TEST Folder does not exist!";
+    if (numberOfImages != numberOfLabels) {
+        qDebug() << "Warning: Number of images and labels do not match";
     }
 
-    dir = trainImagePath;
-
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
-
-        // Get the number of JPG and PNG files in the folder
-        numberOfTrainImages = jpgPngFiles.size();
-
-        qDebug() << "Number of JPG and PNG files in folder:" << numberOfTrainImages;
-        qDebug() << "Train Folder exists!";
-    } else {
-        qDebug() << "Train Folder does not exist!";
-    }
-
-    dir = valImagePath;
-
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList jpgPngFiles = dir.entryList(imageFilters, QDir::Files);
-
-        // Get the number of JPG and PNG files in the folder
-        numberOfValImages = jpgPngFiles.size();
-
-        qDebug() << "Number of JPG and PNG files in folder:" << numberOfValImages;
-        qDebug() << "Val Folder exists!";
-    } else {
-        qDebug() << "Val Folder does not exist!";
-    }
-
-    dir = testLabelPath;
-
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
-
-        // Get the number of JPG and PNG files in the folder
-        numberOfTestLabels = labelFiles.size();
-
-        qDebug() << "test label files in folder:" << numberOfTestLabels;
-        qDebug() << "test label Folder exists!";
-    } else {
-        qDebug() << "test label Folder does not exist!";
-    }
-
-    dir = trainLabelPath;
-
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
-
-        // Get the number of JPG and PNG files in the folder
-        numberOfTrainLabels = labelFiles.size();
-
-        qDebug() << "Train label files in folder:" << numberOfTrainLabels;
-        qDebug() << "Train label Folder exists!";
-    } else {
-        qDebug() << "Train label Folder does not exist!";
-    }
-
-    dir = valLabelPath;
-
-    if (dir.exists()) {
-        // Get the list of JPG and PNG files in the folder
-        QStringList labelFiles = dir.entryList(labelFilters, QDir::Files);
-
-        // Get the number of JPG and PNG files in the folder
-        numberOfValLabels = labelFiles.size();
-
-        qDebug() << "Val label files in folder:" << numberOfValLabels;
-        qDebug() << "Val label Folder exists!";
-    } else {
-        qDebug() << "Val label Folder does not exist!";
-    }
-
-    int readImgStatus = readImagesInFolder( testImagePath, ui);
-
+    int readImgStatus = readImagesInFolder(imagePath, ui);
 
     return readImgStatus;
 }
+
 
 int readImagesInFolder(QString folderPath, Ui::PicAnnotate* ui){
     if (!folderPath.isEmpty()) {
@@ -206,7 +248,7 @@ int readImagesInFolder(QString folderPath, Ui::PicAnnotate* ui){
     ui->listViewFiles->setModel(&model);
     ui->lblFilesInFolder->setText(std::to_string(FilesInFolder).c_str());
     ui->lblCurrentFileNumber->setText(std::to_string(CurrentFileNumber).c_str());
-    return 0;
+    return 1;
 }
 
 

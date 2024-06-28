@@ -10,7 +10,9 @@
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include "globalVar.h"
-
+#include <QRegularExpression>
+#include <QInputDialog>
+#include <QRandomGenerator>
 
 /**
  * Constructor for the PicAnnotate class.
@@ -143,73 +145,6 @@ void PicAnnotate::on_actionOpen_Image_triggered()
     }
 }
 
-/**
- * @brief Display the next image in the folder.
- *
- * This function is called when the "Next" button is clicked.
- * If the current image is the last one in the folder, it does nothing.
- * Otherwise, it loads the next image in the folder, sets it as the scene
- * of the graphics view, and updates the current file number.
- */
-void PicAnnotate::on_next_button_clicked()
-{
-    if( CurrentFileNumber< FilesInFolder && ( FilesInFolder>1)){
-        // Get the file name of the next image
-         imageFileName =  fileList.at( CurrentFileNumber);
-        // Set the absolute path of the next image
-         absoluteFilePath =  directory.absoluteFilePath( imageFileName);
-         zoomScale = 1;
-        pixmap = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
-        // Load the next image
-        pixmap.load( absoluteFilePath);
-        // Set the image as the scene of the graphics view
-        imageItem->setPixmap(pixmap);
-        ui->graphicsView->setScene(scene);
-        // Zoom the image to fit the view, keeping the aspect ratio
-        ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-        ui->lblCurrentFileNumber->setText(std::to_string( CurrentFileNumber).c_str());
-        ui->listViewFiles->setCurrentIndex( model.index( CurrentFileNumber, 0));
-        // Update the current file number
-         CurrentFileNumber++;
-    }
-}
-
-
-
-
-/**
- * @brief Display the previous image in the folder.
- *
- * This function is called when the "Previous" button is clicked.
- * If the current image is the first one in the folder, it does nothing.
- * Otherwise, it loads the previous image in the folder, sets it as the scene
- * of the graphics view, and updates the current file number.
- */
-void PicAnnotate::on_pre_button_clicked()
-{
-    if(( CurrentFileNumber<= FilesInFolder) && ( FilesInFolder>1) && ( CurrentFileNumber>=1)){
-        // Decrease file number
-         CurrentFileNumber--;
-        // Get the file name of the previous image
-         imageFileName =  fileList.at( CurrentFileNumber);
-        // Set the absolute path of the previous image
-         absoluteFilePath =  directory.absoluteFilePath( imageFileName);
-         zoomScale = 1;
-        pixmap = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
-        pixmap.load( absoluteFilePath);
-      // ui->graphicsView->set
-        // Load the previous image
-        pixmap.load( absoluteFilePath);
-        // Set the image as the scene of the graphics view
-        imageItem->setPixmap(pixmap);
-        ui->graphicsView->setScene(scene);
-        // Zoom the image to fit the view, keeping the aspect ratio
-        ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-        ui->lblCurrentFileNumber->setText(std::to_string( CurrentFileNumber).c_str());
-        ui->listViewFiles->setCurrentIndex( model.index( CurrentFileNumber, 0));
-    }
-}
-
 
 /**
  * Handle the triggering of the exit action.
@@ -222,136 +157,269 @@ void PicAnnotate::on_actionExit_triggered()
 
 void PicAnnotate::on_listViewFiles_clicked(const QModelIndex &index)
 {
-     CurrentFileNumber = index.row();
-     imageFileName =  fileList.at( CurrentFileNumber);
-     absoluteFilePath =  directory.absoluteFilePath(imageFileName);
-    pixmap.load( absoluteFilePath);
-    imageItem->setPixmap(pixmap);
-    ui->graphicsView->setScene(scene);
-    ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-    ui->lblCurrentFileNumber->setText(std::to_string( CurrentFileNumber).c_str());
-}
+    //  CurrentFileNumber = index.row();
+    //  imageFileName =  fileList.at( CurrentFileNumber);
+    //  absoluteFilePath =  directory.absoluteFilePath(imageFileName);
+    // pixmap.load( absoluteFilePath);
+    // imageItem->setPixmap(pixmap);
+    // ui->graphicsView->setScene(scene);
+    // ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
+    // ui->lblCurrentFileNumber->setText(std::to_string( CurrentFileNumber).c_str());
 
+    if (!index.isValid()) return;
 
-
-void PicAnnotate::on_ZoomIn_clicked()
-{
-#ifdef QT_DEBUG
-        qDebug() << "zoomScale: " <<  zoomScale;
-        qDebug() << "CurrentFileNumber: " <<  CurrentFileNumber;
-#endif
-    if( CurrentFileNumber>=1 &&  zoomScale<2){
-         zoomScale =  zoomScale + 0.1;
-        pixmapScale = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
-        imageItem->setPixmap(pixmapScale);
-        imageItem->setScale( zoomScale);
-        // Update the view to reflect the changes
-        scene->setSceneRect(QRectF(0,0,pixmapScale.width(), pixmapScale.height()));
-        imageItem->update();
-    }
-}
-
-
-void PicAnnotate::on_ZoomOut_clicked()
-{
-#ifdef QT_DEBUG
-        qDebug() << "zoomScale: " <<  zoomScale;
-        qDebug() << "CurrentFileNumber: " <<  CurrentFileNumber;
-#endif
-    if( CurrentFileNumber>=1 &&  zoomScale<=2.2 &&  zoomScale>=1.1){
-         zoomScale =  zoomScale - 0.1;
-        pixmapScale = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
-        imageItem->setPixmap(pixmapScale);
-        imageItem->setScale( zoomScale);
-        // Update the view to reflect the changes
-        scene->setSceneRect(QRectF(0,0,pixmapScale.width(), pixmapScale.height()));
-        imageItem->update();
+    int selectedIndex = index.row();
+    if (selectedIndex >= 0 && selectedIndex < fileList.size()) {
+        CurrentFileNumber = selectedIndex + 1;
+        loadImageAndAnnotations(selectedIndex);
     }
 }
 
 
 void PicAnnotate::on_actionRead_YAML_triggered()
 {
+    zoomScale = 1;
     try {
-        // Browse for a file
-         fileName = QFileDialog::getOpenFileName(this, "Select a File", QDir::currentPath(), "YAML (*.yaml);;All Files (*)");
-
-        // If the user cancels the file dialog, fileName will be an empty string
-        if ( fileName.isEmpty()) {
-            qDebug() << "No file selected";
+        // Select the dataset folder
+        QString datasetFolder = QFileDialog::getExistingDirectory(this, "Select Dataset Folder", QDir::homePath());
+        if (datasetFolder.isEmpty()) {
+            QMessageBox::information(this, "Information", "No folder selected");
+            return;
         }
-        else{
-            // Process the selected file
-            #ifdef QT_DEBUG
-                    qDebug() << "Selected file:" <<  fileName;
-            #endif
-                 config = readYoloConfig(fileName.toStdString());
-//                 for (const auto& className : config.classNames) {
-//                     classList << QString::fromStdString(className);
-// #ifdef QT_DEBUG
-//                         qDebug() << "Class Name:" << className;
-// #endif
-//                 }
-//                 classModel.setStringList(classList);
-//                 ui->listViewClass->setModel(&classModel);
 
-                for (const auto& className :  config.classNames) {
-                    QStandardItem* item = new QStandardItem(QString::fromStdString(className));
-                    item->setCheckable(true); // Make the item checkable
-                    item->setCheckState(Qt::Unchecked); // Set the initial state to unchecked
-                     classModel.appendRow(item);
-#ifdef QT_DEBUG
-                    qDebug() << "Class Name:" << className;
-#endif
-                }
-                //classModel.setStringList(classList);
-                ui->listViewClass->setModel(& classModel);
-                ui->lblTotalnc->setText(std::to_string( config.numClasses).c_str());
-                loadStatus = loadDataset(& config,  fileName, ui);
-                if( loadStatus<0){
-                    QMessageBox::information(this, "Message", "Dataset not loaded");
+        // Find all YAML files in the dataset folder
+        QDir dir(datasetFolder);
+        QStringList yamlFilters;
+        yamlFilters << "*.yaml" << "*.yml";
+        QFileInfoList yamlFiles = dir.entryInfoList(yamlFilters, QDir::Files);
 
-                }
-
-                // // Get number of files in folder
-                // FilesInFolder =  fileList.size();
-                // qDebug() << "Files in folder :" <<  FilesInFolder;
-
-                // Set first image file name from folder
-                imageFileName =  fileList.at(0);
-
-                // Set absolute path of image file
-                absoluteFilePath =  directory.absoluteFilePath( imageFileName);
-
-                // Load first image
-                pixmap.load( absoluteFilePath);
-                zoomScale = 1;
-                pixmap = pixmap.scaled(pixmap.width() *  zoomScale, pixmap.height() *  zoomScale);
-
-                // Set current file number to 1
-                CurrentFileNumber = 1;
-                QPainter painter(&pixmap);
-                painter.setPen(Qt::blue);  // Set the pen color to blue
-                painter.drawRect(50, 50, 200, 100);  // Draw a rectangle at (50, 50) with width 200 and height 100
-
-                // Set image to be displayed
-                imageItem->setPixmap(pixmap);
-
-                // Set scene and view
-                ui->graphicsView->setScene(scene);
-                ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-
-
+        if (yamlFiles.isEmpty()) {
+            QMessageBox::warning(this, "Warning", "No YAML files found in the selected folder");
+            return;
         }
+
+        // Let user select which YAML file to use
+        QStringList yamlFileNames;
+        for (const auto& fileInfo : yamlFiles) {
+            yamlFileNames << fileInfo.fileName();
+        }
+
+        bool ok;
+        QString selectedYamlFile = QInputDialog::getItem(this, "Select YAML File",
+                                                         "Choose a YAML file:",
+                                                         yamlFileNames, 0, false, &ok);
+        if (!ok || selectedYamlFile.isEmpty()) {
+            QMessageBox::information(this, "Information", "No YAML file selected");
+            return;
+        }
+
+        fileName = dir.filePath(selectedYamlFile);
+        qDebug() << "Selected YAML file:" << fileName;
+
+        config = readYoloConfig(fileName.toStdString());
+        initializeColorMap();
+
+        // Check if folders exist and classes are defined
+        QStringList availableFolders;
+        if (QDir(QString::fromStdString(config.trainImagesPath)).exists())
+        {
+            availableFolders << "train";
+        }
+        if (QDir(QString::fromStdString(config.testImagesPath)).exists())
+        {
+            availableFolders << "test";
+        }
+        if (QDir(QString::fromStdString(config.valImagesPath)).exists())
+        {
+            availableFolders << "Val";
+        }
+
+        if (availableFolders.isEmpty()) {
+            QMessageBox::warning(this, "Missing Folders", "No valid image folders found in the dataset.");
+            return;
+        }
+
+        if (config.classNames.empty()) {
+            QMessageBox::warning(this, "Missing Classes", "No classes defined in the YAML file.");
+            return;
+        }
+
+        // Let user select which folder to open
+        QString selectedFolder = QInputDialog::getItem(this, "Select Folder",
+                                                       "Choose a folder to open images from:",
+                                                       availableFolders, 0, false, &ok);
+        if (!ok || selectedFolder.isEmpty()) {
+            QMessageBox::information(this, "Information", "No folder selected");
+            return;
+        }
+
+        // Set the current working directory based on user selection
+        if (selectedFolder == "train") {
+            directory.setPath(QString::fromStdString(config.trainImagesPath));
+        } else if (selectedFolder == "test") {
+            directory.setPath(QString::fromStdString(config.testImagesPath));
+        } else if (selectedFolder == "val") {
+            directory.setPath(QString::fromStdString(config.valImagesPath));
+        }
+
+        // Setup class list
+        classModel.clear();
+        for (const auto& className : config.classNames) {
+            QStandardItem* item = new QStandardItem(QString::fromStdString(className));
+            item->setCheckable(true);
+            item->setCheckState(Qt::Unchecked);
+            classModel.appendRow(item);
+        }
+        ui->listViewClass->setModel(&classModel);
+        ui->lblTotalnc->setText(QString::number(config.numClasses));
+
+        // Load dataset
+        loadStatus = loadDataset(&config, ui, selectedFolder);
+        if (loadStatus < 0) {
+            QMessageBox::warning(this, "Warning", "Dataset not loaded properly");
+            return;
+        }
+
+        // Load first image and its annotations
+        loadImageAndAnnotations(0);
 
     } catch (const std::exception& e) {
-        // Handle exceptions
-        QMessageBox::critical(nullptr, "Error", e.what());
+        QMessageBox::critical(this, "Error", e.what());
     } catch (...) {
-        // Handle any other exceptions
-        QMessageBox::critical(nullptr, "Error", "An unknown error occurred.");
+        QMessageBox::critical(this, "Error", "An unknown error occurred.");
     }
-
-
 }
 
+
+void PicAnnotate::initializeColorMap()
+{
+    QRandomGenerator *rng = QRandomGenerator::global();
+    for (int i = 0; i < config.classNames.size(); ++i) {
+        classColorMap[i] = QColor::fromHsv(rng->bounded(360), 200 + rng->bounded(55), 200 + rng->bounded(55));
+    }
+}
+
+
+void PicAnnotate::updateAnnotatedPixmap()
+{
+    annotatedPixmap = originalPixmap.copy();
+
+    QPainter painter(&annotatedPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QString labelPath = absoluteFilePath;
+    labelPath.replace("/images/", "/labels/");
+    labelPath.replace(QRegularExpression("\\.(jpg|jpeg|png|bmp)$"), ".txt");
+    QFile file(labelPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            QStringList parts = line.split(' ');
+            if (parts.size() == 5) {
+                int classId = parts[0].toInt();
+                float centerX = parts[1].toFloat() * annotatedPixmap.width();
+                float centerY = parts[2].toFloat() * annotatedPixmap.height();
+                float width = parts[3].toFloat() * annotatedPixmap.width();
+                float height = parts[4].toFloat() * annotatedPixmap.height();
+
+                QColor color = classColorMap.value(classId, Qt::red);
+                painter.setPen(QPen(color, 2));
+                painter.drawRect(centerX - width/2, centerY - height/2, width, height);
+
+                QColor textColor = color.lightness() > 128 ? Qt::black : Qt::white;
+                painter.setPen(textColor);
+                painter.setFont(QFont("Arial", 10, QFont::Bold));
+                painter.drawText(QRectF(centerX - width/2, centerY - height/2 - 20, width, 20),
+                                 Qt::AlignCenter,
+                                 QString::fromStdString(config.classNames[classId]));
+            }
+        }
+        file.close();
+    } else {
+        qDebug() << "Failed to open label file:" << labelPath;
+    }
+}
+
+void PicAnnotate::updateView()
+{
+    QPixmap scaledPixmap = annotatedPixmap.scaled(annotatedPixmap.width() * zoomScale,
+                                                  annotatedPixmap.height() * zoomScale,
+                                                  Qt::KeepAspectRatio,
+                                                  Qt::SmoothTransformation);
+    imageItem->setPixmap(scaledPixmap);
+    imageItem->setScale( zoomScale);
+
+    ui->graphicsView->setScene(scene);
+    ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
+    imageItem->update();
+}
+
+void PicAnnotate::updateViewZoom()
+{
+    QPixmap scaledPixmap = annotatedPixmap.scaled(annotatedPixmap.width() * zoomScale,
+                                                  annotatedPixmap.height() * zoomScale);
+    imageItem->setPixmap(scaledPixmap);
+    imageItem->setScale( zoomScale);
+    scene->setSceneRect(QRectF(0,0,scaledPixmap.width(), scaledPixmap.height()));
+    imageItem->update();
+}
+
+void PicAnnotate::loadImageAndAnnotations(int index)
+{
+    if (index < 0 || index >= fileList.size()) return;
+
+    imageFileName = fileList.at(index);
+    absoluteFilePath = directory.absoluteFilePath(imageFileName);
+
+    originalPixmap.load(absoluteFilePath);
+    if (originalPixmap.isNull()) {
+        qDebug() << "Failed to load image:" << absoluteFilePath;
+        return;
+    }
+    updateAnnotatedPixmap();
+    updateView();
+
+    CurrentFileNumber = index + 1;
+    ui->lblCurrentFileNumber->setText(QString::number(CurrentFileNumber));
+    ui->listViewFiles->setCurrentIndex(model.index(index, 0));
+}
+
+void PicAnnotate::on_next_button_clicked()
+{
+    zoomScale = 1;
+    imageItem->setScale( zoomScale);
+    scene->setSceneRect(QRectF(0,0,annotatedPixmap.width(), annotatedPixmap.height()));
+    imageItem->update();
+    if (CurrentFileNumber < FilesInFolder && (FilesInFolder > 1)) {
+        loadImageAndAnnotations(CurrentFileNumber);
+    }
+}
+
+void PicAnnotate::on_pre_button_clicked()
+{
+    zoomScale = 1;
+    imageItem->setScale( zoomScale);
+    scene->setSceneRect(QRectF(0,0,annotatedPixmap.width(), annotatedPixmap.height()));
+    imageItem->update();
+
+    if (CurrentFileNumber > 1 && FilesInFolder > 1) {
+        loadImageAndAnnotations(CurrentFileNumber - 2);
+    }
+}
+
+void PicAnnotate::on_ZoomIn_clicked()
+{
+    if (CurrentFileNumber >= 1 && zoomScale < 2) {
+        zoomScale = zoomScale + 0.1;
+        updateViewZoom();
+    }
+}
+
+void PicAnnotate::on_ZoomOut_clicked()
+{
+    if (CurrentFileNumber >= 1 && zoomScale <= 2.2 && zoomScale >= 1.1) {
+        zoomScale = zoomScale - 0.1;
+        updateViewZoom();
+    }
+}

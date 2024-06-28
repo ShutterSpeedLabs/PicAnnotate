@@ -6,7 +6,7 @@
 #include "yaml_cpp.h"
 #include <QString>
 
-int loadDataset(YoloConfig *config, QString fileName, Ui::PicAnnotate* ui);
+int loadDataset(YoloConfig *config, Ui::PicAnnotate* ui, QString selectedFolder);
 int readImagesInFolder(QString folderPath, Ui::PicAnnotate* ui);
 extern int numberOfTestImages;
 extern int numberOfTrainImages;

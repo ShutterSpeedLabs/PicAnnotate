@@ -1,7 +1,7 @@
 #ifndef GLOBALVAR_H
 #define GLOBALVAR_H
-#include "qgraphicsitem.h"
-#include "qstandarditemmodel.h"
+    #include "qgraphicsitem.h"
+    #include "qstandarditemmodel.h"
     #include "yaml_cpp.h"
     #include <QString>
     #include <QPixmap>
@@ -32,6 +32,5 @@
 
     extern QPixmap pixmap;
     extern QGraphicsPixmapItem *imageItem;
-
 
 #endif // GLOBALVAR_H
