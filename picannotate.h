@@ -19,7 +19,12 @@ public:
     QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem;
     QGraphicsScene *scene = new QGraphicsScene;
     QPixmap pixmap;
-    QPixmap pixmapScale;
+    //QPixmap pixmapScale;
+
+    QPixmap originalPixmap;
+    QPixmap annotatedPixmap;
+    void updateAnnotatedPixmap();
+    void updateView();
 
 public:
     PicAnnotate(QWidget *parent = nullptr);
@@ -43,8 +48,12 @@ private slots:
     void on_ZoomOut_clicked();
 
     void on_actionRead_YAML_triggered();
+    void loadImageAndAnnotations(int index);
+    void initializeColorMap();
+    void updateViewZoom();
 
 private:
     Ui::PicAnnotate *ui;
+    QMap<int, QColor> classColorMap;
 };
 #endif // PICANNOTATE_H

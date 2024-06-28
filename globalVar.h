@@ -1,5 +1,6 @@
 #ifndef GLOBALVAR_H
 #define GLOBALVAR_H
+    #include "qgraphicsitem.h"
     #include "qstandarditemmodel.h"
     #include "yaml_cpp.h"
     #include <QString>
@@ -30,7 +31,6 @@
     extern QString trainFolderPath;
 
     extern QPixmap pixmap;
-
-
+    extern QGraphicsPixmapItem *imageItem;
 
 #endif // GLOBALVAR_H
