@@ -1,10 +1,14 @@
 #ifndef PICANNOTATE_H
 #define PICANNOTATE_H
 
+#include <QGraphicsView>
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
 #include <QDebug>
+#include <QGraphicsPixmapItem>
+#include <QMouseEvent>
+#include <QStandardItemModel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,7 +23,10 @@ public:
     QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem;
     QGraphicsScene *scene = new QGraphicsScene;
     QPixmap pixmap;
-    //QPixmap pixmapScale;
+    QPointF startPoint;
+    QPointF endPoint;
+    bool isDrawing;
+    int currentClassId;
 
     QPixmap originalPixmap;
     QPixmap annotatedPixmap;
@@ -52,9 +59,27 @@ private slots:
     void initializeColorMap();
     void updateViewZoom();
     void updateAnnotations();
+    void on_listViewClass_clicked(const QModelIndex &index);
+    bool eventFilter(QObject *obj, QEvent *event) override;
+protected:
+    void onMousePressed(QPointF point);
+    void onMouseMoved(QPointF point);
+    void onMouseReleased(QPointF point);
 
+private:
+    void drawTemporaryRect();
+    void finalizeBoundingBox();
 private:
     Ui::PicAnnotate *ui;
     QMap<int, QColor> classColorMap;
+    struct BoundingBox {
+        int classId;
+        QRectF rect;
+    };
+    QList<BoundingBox> boundingBoxes;
+    void deleteBoundingBox(const QPointF &clickPoint);
+    void saveBoundingBoxes();
 };
+
+
 #endif // PICANNOTATE_H

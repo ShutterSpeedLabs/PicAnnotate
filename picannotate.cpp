@@ -25,12 +25,23 @@
  */
 PicAnnotate::PicAnnotate(QWidget *parent)
     : QMainWindow(parent)
+    , imageItem(nullptr)
+    , scene(nullptr)
+    , isDrawing(false)
+    , currentClassId(0)
     , ui(new Ui::PicAnnotate)
 {
     ui->setupUi(this);
-    scene->addItem(imageItem);
-}
 
+    scene = new QGraphicsScene(this);
+    imageItem = new QGraphicsPixmapItem();
+    scene->addItem(imageItem);
+    ui->graphicsView->setScene(scene);
+
+    // Install event filter on the graphics view
+    ui->graphicsView->viewport()->installEventFilter(this);
+    connect(&classModel, &QStandardItemModel::itemChanged, this, &PicAnnotate::updateAnnotations);
+}
 /**
  * Destructor for the PicAnnotate class.
  */
@@ -157,15 +168,6 @@ void PicAnnotate::on_actionExit_triggered()
 
 void PicAnnotate::on_listViewFiles_clicked(const QModelIndex &index)
 {
-    //  CurrentFileNumber = index.row();
-    //  imageFileName =  fileList.at( CurrentFileNumber);
-    //  absoluteFilePath =  directory.absoluteFilePath(imageFileName);
-    // pixmap.load( absoluteFilePath);
-    // imageItem->setPixmap(pixmap);
-    // ui->graphicsView->setScene(scene);
-    // ui->graphicsView->fitInView(imageItem, Qt::KeepAspectRatio);
-    // ui->lblCurrentFileNumber->setText(std::to_string( CurrentFileNumber).c_str());
-
     if (!index.isValid()) return;
 
     int selectedIndex = index.row();
@@ -305,47 +307,22 @@ void PicAnnotate::initializeColorMap()
 void PicAnnotate::updateAnnotatedPixmap()
 {
     annotatedPixmap = originalPixmap.copy();
-
     QPainter painter(&annotatedPixmap);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QString labelPath = absoluteFilePath;
-    labelPath.replace("/images/", "/labels/");
-    labelPath.replace(QRegularExpression("\\.(jpg|jpeg|png|bmp)$"), ".txt");
-    QFile file(labelPath);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while (!in.atEnd()) {
-            QString line = in.readLine();
-            QStringList parts = line.split(' ');
-            if (parts.size() == 5) {
-                int classId = parts[0].toInt();
+    for (const BoundingBox &box : boundingBoxes) {
+        painter.setPen(QPen(classColorMap[box.classId], 2));
+        painter.drawRect(box.rect);
 
-                // Check if the class is checked in the list view
-                QStandardItem* item = classModel.item(classId);
-                if (item && item->checkState() == Qt::Checked) {
-                    float centerX = parts[1].toFloat() * annotatedPixmap.width();
-                    float centerY = parts[2].toFloat() * annotatedPixmap.height();
-                    float width = parts[3].toFloat() * annotatedPixmap.width();
-                    float height = parts[4].toFloat() * annotatedPixmap.height();
-
-                    QColor color = classColorMap.value(classId, Qt::red);
-                    painter.setPen(QPen(color, 2));
-                    painter.drawRect(centerX - width/2, centerY - height/2, width, height);
-
-                    QColor textColor = color.lightness() > 128 ? Qt::black : Qt::white;
-                    painter.setPen(textColor);
-                    painter.setFont(QFont("System", 10, QFont::System));
-                    painter.drawText(QRectF(centerX - width/2, centerY - height/2 - 20, width, 20),
-                                     Qt::AlignCenter,
-                                     QString::fromStdString(config.classNames[classId]));
-                }
-            }
-        }
-        file.close();
-    } else {
-        qDebug() << "Failed to open label file:" << labelPath;
+        // Draw class name
+        QColor textColor = classColorMap[box.classId].lightness() > 128 ? Qt::black : Qt::white;
+        painter.setPen(textColor);
+        painter.setFont(QFont("Arial", 10));
+        painter.drawText(box.rect, Qt::AlignTop | Qt::AlignLeft,
+                         QString::fromStdString(config.classNames[box.classId]));
     }
+
+    imageItem->setPixmap(annotatedPixmap);
 }
 
 void PicAnnotate::updateView()
@@ -384,6 +361,38 @@ void PicAnnotate::loadImageAndAnnotations(int index)
         qDebug() << "Failed to load image:" << absoluteFilePath;
         return;
     }
+
+    // Clear existing bounding boxes
+    boundingBoxes.clear();
+
+    // Load annotations from label file
+    QString labelPath = absoluteFilePath;
+    labelPath.replace("/images/", "/labels/");
+    labelPath.replace(QRegularExpression("\\.(jpg|jpeg|png|bmp)$"), ".txt");
+
+    QFile file(labelPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            QStringList parts = line.split(" ");
+            if (parts.size() == 5) {
+                int classId = parts[0].toInt();
+                float centerX = parts[1].toFloat() * originalPixmap.width();
+                float centerY = parts[2].toFloat() * originalPixmap.height();
+                float width = parts[3].toFloat() * originalPixmap.width();
+                float height = parts[4].toFloat() * originalPixmap.height();
+
+                QRectF rect(centerX - width/2, centerY - height/2, width, height);
+                BoundingBox box;
+                box.classId = classId;
+                box.rect = rect;
+                boundingBoxes.append(box);
+            }
+        }
+        file.close();
+    }
+
     updateAnnotatedPixmap();
     updateView();
 
@@ -433,6 +442,171 @@ void PicAnnotate::on_ZoomOut_clicked()
 
 void PicAnnotate::updateAnnotations()
 {
+    QList<BoundingBox> visibleBoxes;
+    for (const BoundingBox &box : boundingBoxes) {
+        QModelIndex index = classModel.index(box.classId, 0);
+        if (index.isValid() && classModel.data(index, Qt::CheckStateRole) == Qt::Checked) {
+            visibleBoxes.append(box);
+        }
+    }
+
+    annotatedPixmap = originalPixmap.copy();
+    QPainter painter(&annotatedPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    for (const BoundingBox &box : visibleBoxes) {
+        painter.setPen(QPen(classColorMap[box.classId], 2));
+        painter.drawRect(box.rect);
+
+        QColor textColor = classColorMap[box.classId].lightness() > 128 ? Qt::black : Qt::white;
+        painter.setPen(textColor);
+        painter.setFont(QFont("Arial", 10));
+        painter.drawText(box.rect, Qt::AlignTop | Qt::AlignLeft,
+                         QString::fromStdString(config.classNames[box.classId]));
+    }
+
+    updateView();
+}
+
+
+void PicAnnotate::drawTemporaryRect()
+{
+    QPixmap tempPixmap = annotatedPixmap.copy();
+    QPainter painter(&tempPixmap);
+    painter.setPen(QPen(classColorMap[currentClassId], 2));
+    painter.drawRect(QRectF(startPoint, endPoint));
+    imageItem->setPixmap(tempPixmap);
+}
+
+void PicAnnotate::finalizeBoundingBox()
+{
+    QRectF rect(startPoint, endPoint);
+    rect = rect.normalized();
+
+    BoundingBox newBox;
+    newBox.classId = currentClassId;
+    newBox.rect = rect;
+    boundingBoxes.append(newBox);
+
     updateAnnotatedPixmap();
     updateView();
+    saveBoundingBoxes();
+}
+
+void PicAnnotate::on_listViewClass_clicked(const QModelIndex &index)
+{
+    if (!index.isValid()) {
+        return;
+    }
+
+    QStyleOptionViewItem option;
+    option.initFrom(ui->listViewClass);
+    option.rect = ui->listViewClass->visualRect(index);
+
+    QRect checkBoxRect = ui->listViewClass->style()->subElementRect(QStyle::SE_ItemViewItemCheckIndicator, &option, ui->listViewClass);
+
+    // Get the position of the mouse click
+    QPoint mousePos = ui->listViewClass->mapFromGlobal(QCursor::pos());
+
+    if (checkBoxRect.contains(mousePos)) {
+        // Checkbox area was clicked
+        QStandardItem* item = classModel.itemFromIndex(index);
+        if (item->isCheckable()) {
+            Qt::CheckState newState = (item->checkState() == Qt::Checked) ? Qt::Unchecked : Qt::Checked;
+            item->setCheckState(newState);
+            updateAnnotations();
+        }
+    }
+
+    // Set the current class ID regardless of where the click occurred
+    currentClassId = index.row();
+
+    // Optionally, you can update the UI to show which class is currently selected
+    ui->listViewClass->setCurrentIndex(index);
+}
+
+bool PicAnnotate::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == ui->graphicsView->viewport()) {
+        switch (event->type()) {
+        case QEvent::MouseButtonPress: {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF scenePos = ui->graphicsView->mapToScene(mouseEvent->pos());
+            if (mouseEvent->button() == Qt::LeftButton) {
+                onMousePressed(scenePos);
+            } else if (mouseEvent->button() == Qt::RightButton) {
+                deleteBoundingBox(scenePos);
+            }
+            return true;
+        }
+        case QEvent::MouseMove: {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF scenePos = ui->graphicsView->mapToScene(mouseEvent->pos());
+            onMouseMoved(scenePos);
+            return true;
+        }
+        case QEvent::MouseButtonRelease: {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF scenePos = ui->graphicsView->mapToScene(mouseEvent->pos());
+            onMouseReleased(scenePos);
+            return true;
+        }
+        default:
+            return false;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
+}
+
+void PicAnnotate::onMousePressed(QPointF point)
+{
+    if (isDrawing) return;
+    startPoint = point;
+    isDrawing = true;
+}
+
+void PicAnnotate::onMouseMoved(QPointF point)
+{
+    if (!isDrawing) return;
+    endPoint = point;
+    drawTemporaryRect();
+}
+
+void PicAnnotate::onMouseReleased(QPointF point)
+{
+    if (!isDrawing) return;
+    endPoint = point;
+    isDrawing = false;
+    finalizeBoundingBox();
+}
+void PicAnnotate::deleteBoundingBox(const QPointF &clickPoint)
+{
+    for (int i = boundingBoxes.size() - 1; i >= 0; --i) {
+        if (boundingBoxes[i].rect.contains(clickPoint)) {
+            boundingBoxes.removeAt(i);
+            updateAnnotatedPixmap();
+            updateView();
+            saveBoundingBoxes();
+            break;
+        }
+    }
+}
+
+void PicAnnotate::saveBoundingBoxes()
+{
+    QString labelPath = absoluteFilePath;
+    labelPath.replace("/images/", "/labels/");
+    labelPath.replace(QRegularExpression("\\.(jpg|jpeg|png|bmp)$"), ".txt");
+    QFile file(labelPath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        for (const BoundingBox &box : boundingBoxes) {
+            float center_x = (box.rect.left() + box.rect.right()) / (2.0 * annotatedPixmap.width());
+            float center_y = (box.rect.top() + box.rect.bottom()) / (2.0 * annotatedPixmap.height());
+            float width = box.rect.width() / annotatedPixmap.width();
+            float height = box.rect.height() / annotatedPixmap.height();
+            out << QString("%1 %2 %3 %4 %5\n").arg(box.classId).arg(center_x).arg(center_y).arg(width).arg(height);
+        }
+        file.close();
+    }
 }

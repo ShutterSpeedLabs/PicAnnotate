@@ -2,6 +2,7 @@
 #include "qdebug.h"
 #include "qlogging.h"
 #include <filesystem>
+#include <regex>
 #include <yaml-cpp/yaml.h>
 
 
@@ -36,10 +37,16 @@ YoloConfig readYoloConfig(const std::string& filename) {
 
         config.trainImagesPath = resolvePath(config.trainFolder).string();
         config.trainLabelsPath = resolvePath(config.trainFolder).string();
+        config.trainLabelsPath = std::regex_replace(config.trainLabelsPath, std::regex("\\bimages\\b"), "labels");
+
         config.testImagesPath = resolvePath(config.testFolder).string();
         config.testLabelsPath = resolvePath(config.testFolder).string();
+        config.testLabelsPath = std::regex_replace(config.testLabelsPath, std::regex("\\bimages\\b"), "labels");
+
         config.valImagesPath = resolvePath(config.valFolder).string();
         config.valLabelsPath = resolvePath(config.valFolder).string();
+        config.valLabelsPath = std::regex_replace(config.valLabelsPath, std::regex("\\bimages\\b"), "labels");
+
 
         qDebug() << "Train folder:" << config.trainImagesPath;
         qDebug() << "Test folder:" <<  config.testImagesPath ;
