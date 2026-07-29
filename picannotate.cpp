@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
-#include <opencv2/opencv.hpp>
+//#include <opencv2/opencv.hpp>
 #include <QImage>
 #include "globalVar.h"
 
@@ -144,7 +144,7 @@ void PicAnnotate::on_actionOpen_Image_triggered()
  */
 void PicAnnotate::on_next_button_clicked()
 {
-    if(CurrentFileNumber<FilesInFolder && (FilesInFolder>1)){
+   if(CurrentFileNumber<FilesInFolder && (FilesInFolder>1)){
         // Get the file name of the next image
         imageFileName = fileList.at(CurrentFileNumber);
         // Set the absolute path of the next image
@@ -159,8 +159,6 @@ void PicAnnotate::on_next_button_clicked()
         // Update the current file number
         CurrentFileNumber++;
     }
-}
-
 }
 
 

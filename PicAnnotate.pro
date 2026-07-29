@@ -29,5 +29,9 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-INCLUDEPATH += /usr/local/include/opencv4
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui
+#INCLUDEPATH += /usr/local/include/opencv4
+INCLUDEPATH += C:\OpenCV\build\include
+
+#LIBS += -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui
+LIBS += -LC:\OpenCV\build\x64\vc16\lib -lopencv_world490
+
