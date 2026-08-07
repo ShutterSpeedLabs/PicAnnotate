@@ -1,4 +1,5 @@
 #include "picannotate.h"
+#include "ui/theme.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -18,6 +19,13 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    // QSettings keys off these, and the main window stores its panel layout there.
+    QApplication::setOrganizationName("ShutterSpeedLabs");
+    QApplication::setApplicationName("PicAnnotate");
+
+    // Before any widget exists, so nothing is created with the default palette.
+    Theme::apply(a);
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();

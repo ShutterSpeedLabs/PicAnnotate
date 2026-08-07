@@ -6,75 +6,32 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1032</width>
-    <height>674</height>
+    <width>1280</width>
+    <height>760</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>PicAnnotate</string>
   </property>
+  <property name="dockNestingEnabled">
+   <bool>true</bool>
+  </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout_2">
+   <layout class="QGridLayout" name="centralLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QPushButton" name="ZoomOut">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset theme="zoom-out"/>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="ZoomIn">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset theme="zoom-in"/>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pre_button">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset theme="go-previous"/>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="next_button">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset theme="go-next"/>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="1" column="0">
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QGraphicsView" name="graphicsView"/>
-      </item>
-     </layout>
-    </item>
-    <item row="1" column="1">
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item alignment="Qt::AlignRight|Qt::AlignTop">
-       <widget class="QListView" name="listViewClass"/>
-      </item>
-      <item alignment="Qt::AlignRight">
-       <widget class="QListView" name="listViewFiles"/>
-      </item>
-     </layout>
+     <widget class="AnnotationGraphicsView" name="graphicsView"/>
     </item>
    </layout>
   </widget>
@@ -83,7 +40,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1032</width>
+     <width>1280</width>
      <height>22</height>
     </rect>
    </property>
@@ -93,10 +50,15 @@
     </property>
     <addaction name="actionOpen_Image"/>
     <addaction name="actionOpen_Video"/>
-    <addaction name="actionOpen_Annotation"/>
     <addaction name="actionOpen_Folder"/>
+    <addaction name="actionOpen_Annotation"/>
+    <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_Directory"/>
+    <addaction name="separator"/>
+    <addaction name="actionImport_Dataset"/>
+    <addaction name="actionExport_Dataset"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -104,6 +66,7 @@
      <string>Edit</string>
     </property>
     <addaction name="actionEdit_Label"/>
+    <addaction name="actionClear_Frame_Annotations"/>
     <addaction name="actionAuto_Save"/>
     <addaction name="actionPreferences"/>
    </widget>
@@ -124,15 +87,25 @@
     </property>
     <addaction name="actionDisplay_RectBox"/>
     <addaction name="actionDisplay_Label"/>
+    <addaction name="actionShow_Keypoint_Names"/>
+    <addaction name="separator"/>
     <addaction name="actionZoom_In"/>
     <addaction name="actionZoom_Out"/>
     <addaction name="actionFit_Window"/>
+    <addaction name="separator"/>
+    <addaction name="menuPanels"/>
+    <addaction name="actionReset_Layout"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
     <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menuPanels">
+    <property name="title">
+     <string>Panels</string>
+    </property>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -141,6 +114,104 @@
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBarFile">
+   <property name="windowTitle">
+    <string>File</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionOpen_Folder"/>
+   <addaction name="actionOpen_Video"/>
+   <addaction name="actionSave"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarTools">
+   <property name="windowTitle">
+    <string>Tools</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>true</bool>
+   </attribute>
+   <addaction name="actionRectBox"/>
+   <addaction name="actionSquare"/>
+   <addaction name="actionPolygone"/>
+   <addaction name="actionPolyline"/>
+   <addaction name="actionKeypoint"/>
+   <addaction name="actionSketlton"/>
+   <addaction name="separator"/>
+   <addaction name="actionPrevious_Frame"/>
+   <addaction name="actionNext_Frame"/>
+   <addaction name="separator"/>
+   <addaction name="actionZoom_Out"/>
+   <addaction name="actionZoom_In"/>
+   <addaction name="actionFit_Window"/>
+  </widget>
+  <widget class="QDockWidget" name="dockAnnotations">
+   <property name="windowTitle">
+    <string>Annotations on This Frame</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockAnnotationsContents">
+    <layout class="QVBoxLayout" name="dockAnnotationsLayout">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="topMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
+     <property name="bottomMargin">
+      <number>2</number>
+     </property>
+     <item>
+      <widget class="QListView" name="listViewClass"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockFiles">
+   <property name="windowTitle">
+    <string>Frames</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockFilesContents">
+    <layout class="QVBoxLayout" name="dockFilesLayout">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="topMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
+     <property name="bottomMargin">
+      <number>2</number>
+     </property>
+     <item>
+      <widget class="QListView" name="listViewFiles"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
   <action name="actionOpen_Image">
    <property name="icon">
     <iconset theme="applications-graphics"/>
@@ -159,7 +230,7 @@
   </action>
   <action name="actionOpen_Annotation">
    <property name="text">
-    <string>Open Annotation</string>
+    <string>Open Video + Annotations</string>
    </property>
   </action>
   <action name="actionExit">
@@ -185,6 +256,14 @@
     <string>Edit Label</string>
    </property>
   </action>
+  <action name="actionClear_Frame_Annotations">
+   <property name="text">
+    <string>Delete Frame Annotations</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Del</string>
+   </property>
+  </action>
   <action name="actionPreferences">
    <property name="text">
     <string>Preferences</string>
@@ -192,32 +271,50 @@
   </action>
   <action name="actionRectBox">
    <property name="text">
-    <string>RectBox</string>
+    <string>Box</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw an axis-aligned bounding box</string>
    </property>
   </action>
   <action name="actionSquare">
    <property name="text">
     <string>Square</string>
    </property>
+   <property name="toolTip">
+    <string>Draw a box constrained to a square</string>
+   </property>
   </action>
   <action name="actionPolyline">
    <property name="text">
     <string>Polyline</string>
    </property>
+   <property name="toolTip">
+    <string>Click to add points, double-click or Enter to finish</string>
+   </property>
   </action>
   <action name="actionPolygone">
    <property name="text">
-    <string>Polygone</string>
+    <string>Polygon</string>
+   </property>
+   <property name="toolTip">
+    <string>Click to add points, double-click or Enter to close the polygon</string>
    </property>
   </action>
   <action name="actionKeypoint">
    <property name="text">
     <string>Keypoint</string>
    </property>
+   <property name="toolTip">
+    <string>Place a single point</string>
+   </property>
   </action>
   <action name="actionSketlton">
    <property name="text">
     <string>Skeleton</string>
+   </property>
+   <property name="toolTip">
+    <string>Place a skeleton from the current label's keypoint template</string>
    </property>
   </action>
   <action name="actionDisplay_RectBox">
@@ -261,6 +358,9 @@
    </property>
   </action>
   <action name="actionFit_Window">
+   <property name="icon">
+    <iconset theme="zoom-fit-best"/>
+   </property>
    <property name="text">
     <string>Fit Window</string>
    </property>
@@ -278,7 +378,71 @@
     <string>Open Folder</string>
    </property>
   </action>
+  <action name="actionImport_Dataset">
+   <property name="text">
+    <string>Import Dataset...</string>
+   </property>
+   <property name="toolTip">
+    <string>Import annotations from COCO JSON or a YOLO dataset</string>
+   </property>
+  </action>
+  <action name="actionExport_Dataset">
+   <property name="text">
+    <string>Export Dataset...</string>
+   </property>
+   <property name="toolTip">
+    <string>Export annotations as COCO JSON or a YOLO dataset</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionShow_Keypoint_Names">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Keypoint Names</string>
+   </property>
+  </action>
+  <action name="actionPrevious_Frame">
+   <property name="icon">
+    <iconset theme="go-previous"/>
+   </property>
+   <property name="text">
+    <string>Previous</string>
+   </property>
+   <property name="toolTip">
+    <string>Go to the previous frame</string>
+   </property>
+  </action>
+  <action name="actionNext_Frame">
+   <property name="icon">
+    <iconset theme="go-next"/>
+   </property>
+   <property name="text">
+    <string>Next</string>
+   </property>
+   <property name="toolTip">
+    <string>Go to the next frame</string>
+   </property>
+  </action>
+  <action name="actionReset_Layout">
+   <property name="text">
+    <string>Reset Panel Layout</string>
+   </property>
+   <property name="toolTip">
+    <string>Restore the default window size and panel arrangement</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
+ <customwidgets>
+  <customwidget>
+   <class>AnnotationGraphicsView</class>
+   <extends>QGraphicsView</extends>
+   <header>ui/annotationgraphicsview.h</header>
+  </customwidget>
+ </customwidgets>
 </ui>

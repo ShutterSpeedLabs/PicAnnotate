@@ -72,3 +72,17 @@ CMakeLists.txt.user*
 *.dll
 *.exe
 
+# Build output directories
+build/
+cmake-build-*/
+
+# CMake
+compile_commands.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Qt Creator
+.cache/
+.qtc_clangd/
+

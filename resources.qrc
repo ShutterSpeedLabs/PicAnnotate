@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/theme">
+        <file alias="theme.qss">resources/theme.qss</file>
+    </qresource>
+</RCC>

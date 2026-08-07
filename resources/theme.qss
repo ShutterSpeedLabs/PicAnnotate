@@ -1,0 +1,515 @@
+/* PicAnnotate — modern dark theme.
+ *
+ * The chrome is deliberately desaturated. Annotation shapes are coloured by
+ * label class, so a colourful UI would compete with the data; one restrained
+ * blue accent carries all interactive state instead.
+ *
+ * Palette
+ *   canvas   #0E1014   the image area, darker than any panel so images pop
+ *   base     #16181D   window / toolbar background
+ *   panel    #1C1F26   dock and input background
+ *   raised   #23272F   buttons, elevated surfaces
+ *   hover    #2C313A
+ *   border   #313742
+ *   text     #E4E7EC
+ *   muted    #9AA3AF
+ *   accent   #4F8CFF
+ */
+
+QMainWindow,
+QDialog {
+    background: #16181D;
+}
+
+QWidget {
+    color: #E4E7EC;
+    font-size: 9pt;
+}
+
+QLabel {
+    background: transparent;
+    color: #E4E7EC;
+}
+
+/* ---- canvas ---------------------------------------------------------------
+ * A distinctly darker surface than the panels, so the boundary between image
+ * and chrome reads without needing a border. */
+QGraphicsView {
+    background: #0E1014;
+    border: none;
+}
+
+/* ---- menu bar ------------------------------------------------------------ */
+QMenuBar {
+    background: #16181D;
+    border-bottom: 1px solid #313742;
+    padding: 2px 4px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 5px 11px;
+    border-radius: 5px;
+    margin: 1px 1px;
+}
+
+QMenuBar::item:selected {
+    background: #2C313A;
+}
+
+QMenuBar::item:pressed {
+    background: #4F8CFF;
+    color: #FFFFFF;
+}
+
+QMenu {
+    background: #1C1F26;
+    border: 1px solid #313742;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+QMenu::item {
+    padding: 6px 26px 6px 24px;
+    border-radius: 5px;
+    margin: 1px 2px;
+}
+
+QMenu::item:selected {
+    background: #4F8CFF;
+    color: #FFFFFF;
+}
+
+QMenu::item:disabled {
+    color: #6B7280;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #313742;
+    margin: 5px 8px;
+}
+
+QMenu::indicator {
+    width: 15px;
+    height: 15px;
+    left: 6px;
+}
+
+/* ---- toolbars ----------------------------------------------------------- */
+QToolBar {
+    background: #16181D;
+    border: none;
+    border-bottom: 1px solid #313742;
+    spacing: 3px;
+    padding: 4px 6px;
+}
+
+QToolBar::separator {
+    width: 1px;
+    background: #313742;
+    margin: 5px 6px;
+}
+
+QToolButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 5px 9px;
+    color: #E4E7EC;
+}
+
+QToolButton:hover {
+    background: #2C313A;
+    border-color: #3A414D;
+}
+
+QToolButton:pressed {
+    background: #23272F;
+}
+
+/* The draw tools are exclusive toggles; their checked state has to be
+ * unmistakable, since it governs what a click on the canvas does. */
+QToolButton:checked {
+    background: #4F8CFF;
+    border-color: #6BA0FF;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+QToolButton:checked:hover {
+    background: #6BA0FF;
+}
+
+QToolButton:disabled {
+    color: #5B6270;
+}
+
+/* ---- buttons ------------------------------------------------------------ */
+QPushButton {
+    background: #23272F;
+    border: 1px solid #313742;
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: #E4E7EC;
+    min-height: 18px;
+}
+
+QPushButton:hover {
+    background: #2C313A;
+    border-color: #3F4754;
+}
+
+QPushButton:pressed {
+    background: #1C1F26;
+}
+
+QPushButton:disabled {
+    background: #1A1D23;
+    border-color: #262B33;
+    color: #5B6270;
+}
+
+QPushButton:default {
+    background: #4F8CFF;
+    border-color: #6BA0FF;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+QPushButton:default:hover {
+    background: #6BA0FF;
+}
+
+QPushButton:default:pressed {
+    background: #3D77E0;
+}
+
+/* ---- dock panels -------------------------------------------------------- */
+QDockWidget {
+    background: #1C1F26;
+    color: #E4E7EC;
+    titlebar-close-icon: none;
+    titlebar-normal-icon: none;
+}
+
+/* Uppercase, muted, letter-spaced: reads as a section heading rather than
+ * competing with the content inside the panel. */
+QDockWidget::title {
+    background: #16181D;
+    color: #9AA3AF;
+    padding: 7px 10px;
+    border-bottom: 1px solid #313742;
+    text-align: left;
+    font-weight: 600;
+}
+
+QDockWidget::close-button,
+QDockWidget::float-button {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 0px;
+    icon-size: 12px;
+}
+
+QDockWidget::close-button:hover,
+QDockWidget::float-button:hover {
+    background: #2C313A;
+}
+
+/* Splitter grips between docked panels. Tinted rather than matching the
+ * background, so the divisions between stacked panels are actually visible and
+ * the grab target is discoverable. */
+QMainWindow::separator {
+    background: #262B33;
+    width: 4px;
+    height: 4px;
+}
+
+QMainWindow::separator:hover {
+    background: #4F8CFF;
+}
+
+/* The navigator has its title bar hidden, so it needs its own top edge to
+ * separate it from the canvas above. */
+QDockWidget#dockNavigator {
+    border-top: 1px solid #313742;
+}
+
+/* ---- tabs (the Frames / Tracking dock stack) ---------------------------- */
+QTabBar {
+    background: transparent;
+    qproperty-drawBase: 0;
+}
+
+QTabBar::tab {
+    background: #1A1D23;
+    color: #9AA3AF;
+    border: 1px solid #313742;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    padding: 6px 14px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:hover {
+    background: #23272F;
+    color: #E4E7EC;
+}
+
+QTabBar::tab:selected {
+    background: #1C1F26;
+    color: #E4E7EC;
+    border-color: #3F4754;
+    border-bottom: 2px solid #4F8CFF;
+}
+
+/* ---- lists ------------------------------------------------------------- */
+QListView,
+QListWidget,
+QTreeView,
+QTableView {
+    background: #14171C;
+    alternate-background-color: #171A20;
+    border: 1px solid #262B33;
+    border-radius: 6px;
+    padding: 2px;
+    outline: none;
+    selection-background-color: #4F8CFF;
+    selection-color: #FFFFFF;
+}
+
+QListView::item,
+QListWidget::item {
+    padding: 5px 7px;
+    border-radius: 4px;
+    margin: 1px 1px;
+}
+
+QListView::item:hover,
+QListWidget::item:hover {
+    background: #23272F;
+}
+
+QListView::item:selected,
+QListWidget::item:selected {
+    background: #4F8CFF;
+    color: #FFFFFF;
+}
+
+/* ---- inputs ------------------------------------------------------------ */
+QLineEdit,
+QSpinBox,
+QDoubleSpinBox,
+QComboBox,
+QPlainTextEdit,
+QTextEdit {
+    background: #14171C;
+    border: 1px solid #313742;
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: #E4E7EC;
+    selection-background-color: #4F8CFF;
+    selection-color: #FFFFFF;
+}
+
+QLineEdit:hover,
+QSpinBox:hover,
+QDoubleSpinBox:hover,
+QComboBox:hover {
+    border-color: #3F4754;
+}
+
+/* A visible focus ring — keyboard users need to know where they are. */
+QLineEdit:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus,
+QComboBox:focus,
+QPlainTextEdit:focus,
+QTextEdit:focus {
+    border-color: #4F8CFF;
+}
+
+QLineEdit:disabled,
+QSpinBox:disabled,
+QDoubleSpinBox:disabled,
+QComboBox:disabled {
+    background: #1A1D23;
+    color: #5B6270;
+    border-color: #262B33;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+}
+
+QComboBox QAbstractItemView {
+    background: #1C1F26;
+    border: 1px solid #313742;
+    border-radius: 6px;
+    padding: 4px;
+    selection-background-color: #4F8CFF;
+    selection-color: #FFFFFF;
+}
+
+/* Spin buttons are left to Fusion. Styling the sub-controls without also
+ * supplying arrow images makes Qt fall back to drawing an unthemed light block
+ * where the arrows should be. */
+
+/* ---- checkboxes -------------------------------------------------------- */
+QCheckBox,
+QRadioButton {
+    background: transparent;
+    spacing: 8px;
+    padding: 2px;
+}
+
+QCheckBox::indicator,
+QRadioButton::indicator {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #3F4754;
+    background: #14171C;
+}
+
+QCheckBox::indicator {
+    border-radius: 4px;
+}
+
+QRadioButton::indicator {
+    border-radius: 8px;
+}
+
+QCheckBox::indicator:hover,
+QRadioButton::indicator:hover {
+    border-color: #4F8CFF;
+}
+
+QCheckBox::indicator:checked,
+QRadioButton::indicator:checked {
+    background: #4F8CFF;
+    border-color: #4F8CFF;
+}
+
+/* ---- slider (the frame navigator) -------------------------------------- */
+QSlider::groove:horizontal {
+    height: 4px;
+    background: #262B33;
+    border-radius: 2px;
+}
+
+QSlider::sub-page:horizontal {
+    background: #4F8CFF;
+    border-radius: 2px;
+}
+
+/* A border is required for border-radius to round the handle; without one Qt
+ * paints it as a square. */
+QSlider::handle:horizontal {
+    background: #E4E7EC;
+    border: 1px solid #E4E7EC;
+    width: 12px;
+    height: 12px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #FFFFFF;
+}
+
+QSlider::handle:horizontal:pressed {
+    background: #4F8CFF;
+}
+
+/* ---- scrollbars -------------------------------------------------------- */
+QScrollBar:vertical {
+    background: transparent;
+    width: 11px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #3A414D;
+    border-radius: 5px;
+    min-height: 28px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #4F5866;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 11px;
+    margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+    background: #3A414D;
+    border-radius: 5px;
+    min-width: 28px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #4F5866;
+}
+
+QScrollBar::add-line,
+QScrollBar::sub-line,
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none;
+    border: none;
+    height: 0;
+    width: 0;
+}
+
+/* ---- misc -------------------------------------------------------------- */
+QStatusBar {
+    background: #16181D;
+    border-top: 1px solid #313742;
+    color: #9AA3AF;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+QToolTip {
+    background: #23272F;
+    color: #E4E7EC;
+    border: 1px solid #3F4754;
+    border-radius: 5px;
+    padding: 5px 8px;
+}
+
+QGroupBox {
+    border: 1px solid #313742;
+    border-radius: 7px;
+    margin-top: 9px;
+    padding-top: 9px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 5px;
+    color: #9AA3AF;
+}
+
+QScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QMessageBox {
+    background: #1C1F26;
+}
