@@ -56,6 +56,7 @@
     <addaction name="actionSave"/>
     <addaction name="actionSave_Directory"/>
     <addaction name="separator"/>
+    <addaction name="actionCreate_Dataset"/>
     <addaction name="actionImport_Dataset"/>
     <addaction name="actionExport_Dataset"/>
     <addaction name="separator"/>
@@ -107,9 +108,16 @@
      <string>Panels</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuAI">
+    <property name="title">
+     <string>AI</string>
+    </property>
+    <addaction name="actionModel_Manager"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuAnnotate"/>
+   <addaction name="menuAI"/>
    <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -212,6 +220,102 @@
     </layout>
    </widget>
   </widget>
+  <action name="actionCreate_Dataset">
+   <property name="icon">
+    <iconset theme="folder-new"/>
+   </property>
+   <property name="text">
+    <string>Create Dataset from Videos/Folders...</string>
+   </property>
+   <property name="toolTip">
+    <string>Sample frames from videos and image folders into a new dataset, optionally running detection over it.</string>
+   </property>
+  </action>
+  <action name="actionSAM_Segment">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="edit-select-all"/>
+   </property>
+   <property name="text">
+    <string>SAM Segment</string>
+   </property>
+   <property name="toolTip">
+    <string>Click an object to segment it. Shift+click or right-click excludes a region, drag draws a box, Enter accepts, Esc clears.</string>
+   </property>
+   <property name="shortcut">
+    <string>S</string>
+   </property>
+  </action>
+  <action name="actionDetect_On_Frame">
+   <property name="text">
+    <string>Run Model on This Frame</string>
+   </property>
+   <property name="toolTip">
+    <string>Runs the selected detection or segmentation model on the current frame. Results appear as predictions, not annotations.</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionDetect_On_All_Frames">
+   <property name="text">
+    <string>Run Model on All Frames</string>
+   </property>
+   <property name="toolTip">
+    <string>Runs the selected model over every frame. Can be cancelled from the Predictions panel.</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
+  <action name="actionClassify_Shape">
+   <property name="text">
+    <string>Classify Selected Shape (CLIP)</string>
+   </property>
+   <property name="toolTip">
+    <string>Scores the selected region against your own class names with CLIP and assigns the best match. No training needed.</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+K</string>
+   </property>
+  </action>
+  <action name="actionClassify_Unlabelled">
+   <property name="text">
+    <string>Classify Unlabelled Shapes on This Frame</string>
+   </property>
+   <property name="toolTip">
+    <string>Assigns a class to every shape on this frame that does not have one yet.</string>
+   </property>
+  </action>
+  <action name="actionAccept_All_Predictions">
+   <property name="text">
+    <string>Accept All Predictions</string>
+   </property>
+   <property name="toolTip">
+    <string>Turns every visible prediction into a real annotation, as one undo step.</string>
+   </property>
+  </action>
+  <action name="actionClear_Predictions">
+   <property name="text">
+    <string>Clear Predictions</string>
+   </property>
+   <property name="toolTip">
+    <string>Discards all predictions. Annotations are not affected.</string>
+   </property>
+  </action>
+  <action name="actionModel_Manager">
+   <property name="icon">
+    <iconset theme="preferences-system"/>
+   </property>
+   <property name="text">
+    <string>Model Manager...</string>
+   </property>
+   <property name="toolTip">
+    <string>Choose, locate and download the detection, segmentation and classification models.</string>
+   </property>
+  </action>
   <action name="actionOpen_Image">
    <property name="icon">
     <iconset theme="applications-graphics"/>

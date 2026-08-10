@@ -48,8 +48,22 @@ enum class PointVisibility {
 enum class ShapeSource {
     Manual,
     Tracked,
-    Interpolated
+    Interpolated,
+
+    // Came from a model and was accepted by the user. Kept distinct from Manual
+    // so a dataset can still be audited for how much of it a human actually
+    // drew — a distinction that disappears the moment predictions are written
+    // in as ordinary shapes.
+    Predicted
 };
+
+// Attribute key holding a model's confidence on a shape accepted from a
+// prediction. Stored on the shape rather than alongside it so it survives the
+// project save/load round trip.
+inline constexpr const char *kConfidenceAttribute = "confidence";
+
+// Attribute key recording which model produced a shape.
+inline constexpr const char *kModelAttribute = "model";
 
 class AnnoShape
 {

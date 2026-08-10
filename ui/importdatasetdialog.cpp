@@ -1,6 +1,7 @@
 #include "importdatasetdialog.h"
 
 #include "../io/formatregistry.h"
+#include "recentpaths.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -103,7 +104,8 @@ void ImportDatasetDialog::onBrowseClicked()
     if (!format)
         return;
 
-    const QString start = m_pathEdit->text().isEmpty() ? QDir::homePath() : m_pathEdit->text();
+    const QString start = m_pathEdit->text().isEmpty() ? RecentPaths::dir(RecentPaths::Datasets)
+                                                       : m_pathEdit->text();
 
     QString chosen;
     if (format->importsDirectory()) {
@@ -114,8 +116,10 @@ void ImportDatasetDialog::onBrowseClicked()
                                               start, format->importFileFilter());
     }
 
-    if (!chosen.isEmpty())
+    if (!chosen.isEmpty()) {
         m_pathEdit->setText(chosen);
+        RecentPaths::remember(RecentPaths::Datasets, chosen);
+    }
 }
 
 void ImportDatasetDialog::validate()

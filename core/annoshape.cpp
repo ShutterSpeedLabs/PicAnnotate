@@ -16,6 +16,8 @@ QString sourceToString(ShapeSource source)
         return "tracked";
     case ShapeSource::Interpolated:
         return "interpolated";
+    case ShapeSource::Predicted:
+        return "predicted";
     case ShapeSource::Manual:
     default:
         return "manual";
@@ -28,6 +30,8 @@ ShapeSource sourceFromString(const QString &s)
         return ShapeSource::Tracked;
     if (s == "interpolated")
         return ShapeSource::Interpolated;
+    if (s == "predicted")
+        return ShapeSource::Predicted;
     return ShapeSource::Manual;
 }
 

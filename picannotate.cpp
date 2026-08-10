@@ -1,6 +1,11 @@
 #include "picannotate.h"
 #include "ui_picannotate.h"
 
+#include "ai/autoannotator.h"
+#include "ai/clipcontroller.h"
+#include "ai/predictioncontroller.h"
+#include "ai/predictionstore.h"
+#include "ai/samcontroller.h"
 #include "core/annotationcontroller.h"
 #include "core/annoshape.h"
 #include "core/frameannotations.h"
@@ -8,10 +13,14 @@
 #include "io/formatregistry.h"
 #include "trackers/trackcontroller.h"
 #include "ui/annotationgraphicsview.h"
+#include "ui/datasetwizard.h"
 #include "ui/exportdatasetdialog.h"
 #include "ui/framenavigator.h"
 #include "ui/importdatasetdialog.h"
 #include "ui/labelpanel.h"
+#include "ui/modelmanagerdialog.h"
+#include "ui/predictionpanel.h"
+#include "ui/recentpaths.h"
 #include "ui/theme.h"
 #include "ui/trackpanel.h"
 
@@ -23,9 +32,11 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
 #include <QUndoStack>
@@ -59,11 +70,19 @@ PicAnnotate::PicAnnotate(QWidget *parent)
     , frameNavigator(new FrameNavigator(this))
     , trackPanel(new TrackPanel(this))
     , trackController(new TrackController(&project, annotations, this))
+    , predictionStore(new PredictionStore(this))
+    , predictionController(new PredictionController(&project, annotations, predictionStore, this))
+    , autoAnnotator(new AutoAnnotator(&project, predictionStore, this))
+    , predictionPanel(new PredictionPanel(this))
+    , samController(new SamController(&project, this))
+    , clipController(new ClipController(&project, annotations, this))
 {
     ui->setupUi(this);
 
     setupDocks();
     labelPanel->setLabelSchema(&project.labelSchema());
+    predictionPanel->setStore(predictionStore);
+    predictionPanel->setLabelSchema(&project.labelSchema());
 
     // Undo/redo come from the command stack itself, so their text tracks the
     // action that would be undone ("Undo Add polygon").
@@ -118,6 +137,120 @@ PicAnnotate::PicAnnotate(QWidget *parent)
     connect(trackController, &TrackController::trackingStarted, this, &PicAnnotate::onTrackingStarted);
     connect(trackController, &TrackController::trackingStopped, this, &PicAnnotate::onTrackingStopped);
 
+    connect(predictionPanel, &PredictionPanel::runOnFrameRequested,
+            this, &PicAnnotate::onRunModelOnFrameRequested);
+    connect(predictionPanel, &PredictionPanel::runOnAllFramesRequested,
+            this, &PicAnnotate::onRunModelOnAllFramesRequested);
+    connect(predictionPanel, &PredictionPanel::cancelRunRequested,
+            autoAnnotator, &AutoAnnotator::cancel);
+    connect(predictionPanel, &PredictionPanel::acceptRequested,
+            this, &PicAnnotate::onAcceptPredictionRequested);
+    connect(predictionPanel, &PredictionPanel::rejectRequested,
+            this, &PicAnnotate::onRejectPredictionRequested);
+    connect(predictionPanel, &PredictionPanel::acceptFrameRequested,
+            this, &PicAnnotate::onAcceptFramePredictionsRequested);
+    connect(predictionPanel, &PredictionPanel::rejectFrameRequested,
+            predictionController, &PredictionController::rejectFrame);
+    connect(predictionPanel, &PredictionPanel::acceptAllRequested,
+            this, &PicAnnotate::onAcceptAllPredictionsRequested);
+    connect(predictionPanel, &PredictionPanel::rejectAllRequested,
+            this, &PicAnnotate::onRejectAllPredictionsRequested);
+    connect(predictionPanel, &PredictionPanel::scoreThresholdChanged,
+            predictionStore, &PredictionStore::setScoreThreshold);
+    connect(predictionPanel, &PredictionPanel::taskChanged,
+            autoAnnotator, &AutoAnnotator::setTask);
+    connect(predictionPanel, &PredictionPanel::createMissingClassesChanged, this,
+            [this](bool enabled) { predictionController->options().createMissingClasses = enabled; });
+    connect(predictionPanel, &PredictionPanel::predictionSelected,
+            ui->graphicsView, &AnnotationGraphicsView::setHighlightedPrediction);
+
+    connect(autoAnnotator, &AutoAnnotator::started, predictionPanel, &PredictionPanel::onRunStarted);
+    connect(autoAnnotator, &AutoAnnotator::started, this,
+            [this] { setModelRunUiActive(true); });
+    connect(autoAnnotator, &AutoAnnotator::progress, predictionPanel,
+            &PredictionPanel::onRunProgress);
+    connect(autoAnnotator, &AutoAnnotator::finished, this,
+            &PicAnnotate::onPredictionRunFinished);
+
+    connect(predictionStore, &PredictionStore::framePredictionsChanged,
+            this, &PicAnnotate::onPredictionsChangedForFrame);
+    connect(predictionStore, &PredictionStore::storeCleared,
+            this, &PicAnnotate::refreshPredictions);
+    connect(predictionStore, &PredictionStore::scoreThresholdChanged, this,
+            [this](double) { refreshPredictions(); });
+
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionDetect_On_Frame);
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionDetect_On_All_Frames);
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionAccept_All_Predictions);
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionClear_Predictions);
+    ui->menuAI->insertSeparator(ui->actionModel_Manager);
+
+    connect(ui->actionDetect_On_Frame, &QAction::triggered,
+            this, &PicAnnotate::onRunModelOnFrameRequested);
+    connect(ui->actionDetect_On_All_Frames, &QAction::triggered,
+            this, &PicAnnotate::onRunModelOnAllFramesRequested);
+    connect(ui->actionAccept_All_Predictions, &QAction::triggered,
+            this, &PicAnnotate::onAcceptAllPredictionsRequested);
+    connect(ui->actionClear_Predictions, &QAction::triggered,
+            this, &PicAnnotate::onRejectAllPredictionsRequested);
+
+    // SAM is a draw tool rather than a menu command: it stays on while the user
+    // works through a frame, so it belongs beside the rectangle and polygon
+    // tools and has to be mutually exclusive with them.
+    ui->actionSAM_Segment->setCheckable(true);
+    ui->menuAnnotate->addSeparator();
+    ui->menuAnnotate->addAction(ui->actionSAM_Segment);
+    ui->toolBarTools->insertAction(ui->actionPrevious_Frame, ui->actionSAM_Segment);
+    ui->toolBarTools->insertSeparator(ui->actionPrevious_Frame);
+    connect(ui->actionSAM_Segment, &QAction::toggled, this, &PicAnnotate::onSamToolToggled);
+
+    connect(ui->graphicsView, &AnnotationGraphicsView::samPromptChanged,
+            this, &PicAnnotate::onSamPromptChanged);
+    connect(ui->graphicsView, &AnnotationGraphicsView::samCommitRequested,
+            this, &PicAnnotate::onSamCommitRequested);
+    connect(ui->graphicsView, &AnnotationGraphicsView::samCancelled,
+            this, &PicAnnotate::onSamCancelled);
+
+    connect(samController, &SamController::previewChanged, this,
+            [this](const QVector<QPointF> &polygon, float) {
+                ui->graphicsView->setSamPreview(polygon);
+            });
+    connect(samController, &SamController::previewCleared, this,
+            [this] { ui->graphicsView->setSamPreview({}); });
+    connect(samController, &SamController::statusChanged, this, [this](const QString &text) {
+        if (!text.isEmpty())
+            statusBar()->showMessage(text);
+        else
+            statusBar()->clearMessage();
+    });
+    connect(samController, &SamController::activeChanged, this, &PicAnnotate::onSamActiveChanged);
+    connect(samController, &SamController::failed, this, &PicAnnotate::onSamFailed);
+
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionClassify_Shape);
+    ui->menuAI->insertAction(ui->actionModel_Manager, ui->actionClassify_Unlabelled);
+    ui->menuAI->insertSeparator(ui->actionModel_Manager);
+    connect(ui->actionClassify_Shape, &QAction::triggered,
+            this, &PicAnnotate::onClassifySelectedShapeTriggered);
+    connect(ui->actionClassify_Unlabelled, &QAction::triggered,
+            this, &PicAnnotate::onClassifyUnlabelledOnFrameTriggered);
+
+    connect(clipController, &ClipController::statusChanged, this, [this](const QString &text) {
+        if (text.isEmpty())
+            statusBar()->clearMessage();
+        else
+            statusBar()->showMessage(text);
+    });
+    connect(clipController, &ClipController::finished, this, &PicAnnotate::onClipFinished);
+    connect(clipController, &ClipController::failed, this, [this](const QString &message) {
+        QMessageBox::warning(this, "Classify", message);
+    });
+    // Renaming or removing a class changes what CLIP should score against, so
+    // the cached text embeddings have to go.
+    connect(annotations, &AnnotationController::labelSchemaChanged,
+            clipController, &ClipController::invalidateCandidates);
+    connect(labelPanel, &LabelPanel::labelsChanged,
+            clipController, &ClipController::invalidateCandidates);
+
     ui->listViewFiles->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->listViewFiles, &QListView::customContextMenuRequested,
             this, &PicAnnotate::onFileListContextMenuRequested);
@@ -151,6 +284,7 @@ void PicAnnotate::setupDocks()
     constexpr int kPanelMinWidth = 230;
     for (QWidget *panel : {static_cast<QWidget *>(labelPanel),
                            static_cast<QWidget *>(trackPanel),
+                           static_cast<QWidget *>(predictionPanel),
                            static_cast<QWidget *>(ui->listViewClass),
                            static_cast<QWidget *>(ui->listViewFiles)}) {
         panel->setMinimumWidth(kPanelMinWidth);
@@ -166,6 +300,10 @@ void PicAnnotate::setupDocks()
     trackDock = new QDockWidget(QStringLiteral("Tracking"), this);
     trackDock->setObjectName(QStringLiteral("dockTracking"));
     trackDock->setWidget(trackPanel);
+
+    predictionDock = new QDockWidget(QStringLiteral("Predictions"), this);
+    predictionDock->setObjectName(QStringLiteral("dockPredictions"));
+    predictionDock->setWidget(predictionPanel);
 
     navigatorDock = new QDockWidget(QStringLiteral("Navigator"), this);
     navigatorDock->setObjectName(QStringLiteral("dockNavigator"));
@@ -184,8 +322,10 @@ void PicAnnotate::setupDocks()
     splitDockWidget(labelDock, ui->dockAnnotations, Qt::Vertical);
     splitDockWidget(ui->dockAnnotations, ui->dockFiles, Qt::Vertical);
 
-    // Frames and Tracking are rarely both needed, so they share one slot.
+    // Frames, Tracking and Predictions are rarely needed at once, so they share
+    // one slot. Frames stays on top: it is what a new user needs first.
     tabifyDockWidget(ui->dockFiles, trackDock);
+    tabifyDockWidget(trackDock, predictionDock);
     ui->dockFiles->raise();
 
     // resizeDocks() is only honoured once the window has been laid out, so the
@@ -202,8 +342,10 @@ void PicAnnotate::setupPanelsMenu()
 {
     // Each dock contributes its own show/hide action, so a panel closed by
     // accident can always be brought back.
-    for (QDockWidget *dock : {labelDock, ui->dockAnnotations, ui->dockFiles, trackDock})
+    for (QDockWidget *dock : {labelDock, ui->dockAnnotations, ui->dockFiles, trackDock,
+                              predictionDock}) {
         ui->menuPanels->addAction(dock->toggleViewAction());
+    }
 
     ui->menuPanels->addSeparator();
     ui->menuPanels->addAction(ui->toolBarFile->toggleViewAction());
@@ -251,6 +393,11 @@ void PicAnnotate::displayCurrentFrame()
     ui->graphicsView->setImage(project.currentFrame());
     frameNavigator->setCurrentFrame(project.currentIndex());
     refreshShapes();
+
+    // SAM's embedding belongs to one frame, so moving the playhead invalidates
+    // it and starts encoding the new one.
+    ui->graphicsView->clearSamPrompt();
+    samController->onCurrentFrameChanged();
 }
 
 void PicAnnotate::refreshShapes()
@@ -283,11 +430,23 @@ void PicAnnotate::refreshShapes()
     annotationListModel.setStringList(entries);
 
     refreshTrackPanel();
+    refreshPredictions();
 }
 
 void PicAnnotate::refreshTrackPanel()
 {
     trackPanel->refresh(&project.tracks(), &project.labelSchema(), project.currentIndex());
+}
+
+void PicAnnotate::refreshPredictions()
+{
+    const int frameIndex = project.currentIndex();
+    predictionPanel->setCurrentFrame(frameIndex);
+    predictionPanel->refresh();
+
+    ui->graphicsView->setPredictions(
+        frameIndex >= 0 ? predictionStore->visiblePredictions(frameIndex) : QVector<Prediction>(),
+        project.labelSchema());
 }
 
 void PicAnnotate::onFrameAnnotationsChanged(int frameIndex)
@@ -315,6 +474,9 @@ void PicAnnotate::onSourceOpened()
     // History from the previous source would undo into annotations that no
     // longer have a frame to sit on.
     annotations->clearHistory();
+    // Predictions are indexed by frame number, so keeping them across a source
+    // change would paint the old video's boxes onto the new one.
+    predictionStore->clearAll();
     ui->graphicsView->setActiveLabelId(labelPanel->currentLabelId());
     displayCurrentFrame();
 }
@@ -392,6 +554,303 @@ void PicAnnotate::onTrackingStopped()
     setTrackingUiActive(false);
 }
 
+void PicAnnotate::setModelRunUiActive(bool active)
+{
+    // A batch run drives the decoder frame by frame, so anything that also moves
+    // the playhead has to stand down — same contract as a tracking run.
+    frameNavigator->setInteractionEnabled(!active);
+    ui->listViewFiles->setEnabled(!active);
+    ui->actionNext_Frame->setEnabled(!active);
+    ui->actionPrevious_Frame->setEnabled(!active);
+    ui->actionDetect_On_Frame->setEnabled(!active);
+    ui->actionDetect_On_All_Frames->setEnabled(!active);
+    trackPanel->setTrackingActive(active);
+}
+
+void PicAnnotate::onRunModelOnFrameRequested()
+{
+    if (!project.hasSource()) {
+        QMessageBox::information(this, "Run Model", "Open a source first.");
+        return;
+    }
+
+    autoAnnotator->setTask(predictionPanel->selectedTask());
+
+    QString error;
+    if (!autoAnnotator->runOnFrame(project.currentIndex(), &error))
+        QMessageBox::warning(this, "Run Model", error);
+}
+
+void PicAnnotate::onRunModelOnAllFramesRequested()
+{
+    if (!project.hasSource()) {
+        QMessageBox::information(this, "Run Model", "Open a source first.");
+        return;
+    }
+
+    const int frameCount = project.frameCount();
+
+    // On a long video this is minutes of CPU, so say how long the queue is
+    // before starting rather than appearing to hang.
+    if (frameCount > 50) {
+        const auto reply = QMessageBox::question(
+            this, "Run Model",
+            QString("Run the model over all %1 frames?\n\n"
+                    "This runs on the CPU and can take a while. You can cancel it from "
+                    "the Predictions panel, and nothing is written to your annotations "
+                    "until you accept the results.")
+                .arg(frameCount),
+            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Yes);
+        if (reply != QMessageBox::Yes)
+            return;
+    }
+
+    QList<int> frames;
+    frames.reserve(frameCount);
+    for (int i = 0; i < frameCount; ++i)
+        frames.append(i);
+
+    autoAnnotator->setTask(predictionPanel->selectedTask());
+
+    QString error;
+    if (!autoAnnotator->runOnFrames(frames, &error))
+        QMessageBox::warning(this, "Run Model", error);
+}
+
+void PicAnnotate::onPredictionRunFinished(int framesProcessed, int totalDetections,
+                                          const QString &error)
+{
+    setModelRunUiActive(false);
+    predictionPanel->onRunFinished(framesProcessed, totalDetections, error);
+
+    // The run may have left the decoder on a different frame than the one on
+    // screen; put the display back in step and show whatever landed here.
+    displayCurrentFrame();
+
+    if (!error.isEmpty())
+        QMessageBox::warning(this, "Run Model", error);
+}
+
+void PicAnnotate::onPredictionsChangedForFrame(int frameIndex)
+{
+    // A batch run touches frames the user is not looking at; only redraw the
+    // canvas when the change is visible.
+    if (frameIndex == project.currentIndex())
+        refreshPredictions();
+    else
+        predictionPanel->refresh();
+}
+
+void PicAnnotate::onAcceptPredictionRequested(int frameIndex, const QString &predictionId)
+{
+    if (!predictionController->acceptOne(frameIndex, predictionId)) {
+        QMessageBox::information(
+            this, "Accept Prediction",
+            "That prediction could not be accepted. Its class has no match in the label "
+            "schema, and \"Create missing classes on accept\" is off.");
+    }
+}
+
+void PicAnnotate::onRejectPredictionRequested(int frameIndex, const QString &predictionId)
+{
+    predictionController->rejectOne(frameIndex, predictionId);
+}
+
+void PicAnnotate::onAcceptFramePredictionsRequested(int frameIndex)
+{
+    const int visible = predictionStore->visibleCount(frameIndex);
+    const int taken = predictionController->acceptFrame(frameIndex);
+
+    if (taken < visible) {
+        QMessageBox::information(
+            this, "Accept Predictions",
+            QString("Accepted %1 of %2. The rest have classes with no match in the label "
+                    "schema, and \"Create missing classes on accept\" is off.")
+                .arg(taken)
+                .arg(visible));
+    }
+}
+
+void PicAnnotate::onAcceptAllPredictionsRequested()
+{
+    const int visible = predictionStore->totalVisibleCount();
+    if (visible == 0) {
+        QMessageBox::information(this, "Accept Predictions", "There are no predictions to accept.");
+        return;
+    }
+
+    const auto reply = QMessageBox::question(
+        this, "Accept Predictions",
+        QString("Accept %1 prediction(s) across %2 frame(s) as real annotations?\n\n"
+                "This is a single undo step.")
+            .arg(visible)
+            .arg(predictionStore->frames().size()),
+        QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Yes);
+    if (reply != QMessageBox::Yes)
+        return;
+
+    const int taken = predictionController->acceptAll();
+    if (taken < visible) {
+        QMessageBox::information(
+            this, "Accept Predictions",
+            QString("Accepted %1 of %2. The rest have classes with no match in the label "
+                    "schema, and \"Create missing classes on accept\" is off.")
+                .arg(taken)
+                .arg(visible));
+    }
+}
+
+void PicAnnotate::onSamToolToggled(bool checked)
+{
+    if (checked) {
+        // Same exclusive group as the manual draw tools.
+        for (QAction *other : {ui->actionRectBox, ui->actionSquare, ui->actionPolyline,
+                               ui->actionPolygone, ui->actionKeypoint, ui->actionSketlton}) {
+            other->setChecked(false);
+        }
+
+        if (!project.hasSource()) {
+            QMessageBox::information(this, "Segment Anything", "Open a source first.");
+            ui->actionSAM_Segment->setChecked(false);
+            return;
+        }
+    }
+
+    ui->graphicsView->setDrawMode(checked ? AnnotationGraphicsView::DrawMode::Sam
+                                          : AnnotationGraphicsView::DrawMode::None);
+    samController->setActive(checked);
+}
+
+void PicAnnotate::onSamActiveChanged(bool active)
+{
+    // The controller turns itself off when the models fail to load, so the
+    // action follows it rather than the other way round.
+    if (ui->actionSAM_Segment->isChecked() != active) {
+        QSignalBlocker blocker(ui->actionSAM_Segment);
+        ui->actionSAM_Segment->setChecked(active);
+        if (!active)
+            ui->graphicsView->setDrawMode(AnnotationGraphicsView::DrawMode::None);
+    }
+}
+
+void PicAnnotate::onSamPromptChanged(const QVector<QPointF> &positivePoints,
+                                     const QVector<QPointF> &negativePoints, const QRectF &box)
+{
+    SamSegmenter::Prompt prompt;
+    prompt.positivePoints = positivePoints;
+    prompt.negativePoints = negativePoints;
+    prompt.box = box;
+    samController->setPrompt(prompt);
+}
+
+void PicAnnotate::onSamCommitRequested()
+{
+    const QVector<QPointF> polygon = samController->previewPolygon();
+    if (polygon.size() < 3)
+        return;
+
+    const int labelId = labelPanel->currentLabelId();
+    if (labelId < 0) {
+        QMessageBox::information(this, "Segment Anything",
+                                 "Select a label in the Labels panel first — a mask has to be "
+                                 "assigned to a class.");
+        return;
+    }
+
+    AnnoShape shape = AnnoShape::makePolygon(polygon, labelId);
+    // Tagged as model output even though the user placed every prompt: the
+    // geometry came from SAM, and an audit of the dataset should say so.
+    shape.setSource(ShapeSource::Predicted);
+    shape.setAttribute(QLatin1String(kConfidenceAttribute),
+                       static_cast<double>(samController->previewScore()));
+    shape.setAttribute(QLatin1String(kModelAttribute), QStringLiteral("sam"));
+
+    annotations->addShape(project.currentIndex(), shape);
+
+    // Clear the prompt so the next object starts clean rather than refining the
+    // one just committed.
+    ui->graphicsView->clearSamPrompt();
+    samController->clearPrompt();
+}
+
+void PicAnnotate::onSamCancelled()
+{
+    samController->clearPrompt();
+}
+
+void PicAnnotate::onSamFailed(const QString &message)
+{
+    QMessageBox::warning(this, "Segment Anything", message);
+}
+
+void PicAnnotate::onClassifySelectedShapeTriggered()
+{
+    if (!project.hasSource()) {
+        QMessageBox::information(this, "Classify", "Open a source first.");
+        return;
+    }
+
+    const int shapeIndex = ui->graphicsView->selectedShapeIndex();
+    if (shapeIndex < 0) {
+        QMessageBox::information(this, "Classify",
+                                 "Select a shape on the canvas or in the annotation list first.");
+        return;
+    }
+
+    QString error;
+    if (!clipController->classifyShapes(project.currentIndex(), {shapeIndex}, &error))
+        QMessageBox::warning(this, "Classify", error);
+}
+
+void PicAnnotate::onClassifyUnlabelledOnFrameTriggered()
+{
+    if (!project.hasSource()) {
+        QMessageBox::information(this, "Classify", "Open a source first.");
+        return;
+    }
+
+    QString error;
+    if (!clipController->classifyFrame(project.currentIndex(), /*onlyUnlabelled=*/true, &error))
+        QMessageBox::information(this, "Classify", error);
+}
+
+void PicAnnotate::onClipFinished(int classified, int skipped, const QString &error)
+{
+    if (!error.isEmpty()) {
+        QMessageBox::warning(this, "Classify", error);
+        return;
+    }
+
+    QString summary = QString("Classified %1 shape%2.")
+                          .arg(classified)
+                          .arg(classified == 1 ? "" : "s");
+    if (skipped > 0) {
+        summary += QString("\n\n%1 left unchanged — either already correct, or CLIP was not "
+                           "confident enough to pick a class.")
+                       .arg(skipped);
+    }
+    statusBar()->showMessage(summary.section('\n', 0, 0), 5000);
+
+    if (skipped > 0)
+        QMessageBox::information(this, "Classify", summary);
+}
+
+void PicAnnotate::onRejectAllPredictionsRequested()
+{
+    if (predictionStore->isEmpty())
+        return;
+
+    const auto reply = QMessageBox::question(
+        this, "Clear Predictions",
+        QString("Discard all %1 prediction(s)?\n\nYour annotations are not affected.")
+            .arg(predictionStore->totalCount()),
+        QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Yes);
+    if (reply != QMessageBox::Yes)
+        return;
+
+    predictionController->rejectAll();
+}
+
 void PicAnnotate::showIoReport(const QString &title, const IoReport &report)
 {
     QMessageBox box(this);
@@ -412,12 +871,13 @@ void PicAnnotate::showIoReport(const QString &title, const IoReport &report)
 void PicAnnotate::on_actionOpen_Folder_triggered()
 {
     const QString folderPath = QFileDialog::getExistingDirectory(
-        this, "Select Folder", QDir::homePath(), QFileDialog::ShowDirsOnly);
+        this, "Select Folder", RecentPaths::dir(RecentPaths::Images), QFileDialog::ShowDirsOnly);
 
     if (folderPath.isEmpty()) {
         qDebug() << "No folder selected.";
         return;
     }
+    RecentPaths::remember(RecentPaths::Images, folderPath);
 
     QString error;
     if (!project.openFolder(folderPath, &error)) {
@@ -430,11 +890,13 @@ void PicAnnotate::on_actionOpen_Folder_triggered()
 
 void PicAnnotate::on_actionOpen_Image_triggered()
 {
-    const QString fileName = QFileDialog::getOpenFileName(this, "Select a File", QDir::currentPath());
+    const QString fileName = QFileDialog::getOpenFileName(this, "Select a File",
+                                                          RecentPaths::dir(RecentPaths::Images));
     if (fileName.isEmpty()) {
         qDebug() << "No file selected";
         return;
     }
+    RecentPaths::remember(RecentPaths::Images, fileName);
 
     QString error;
     if (!project.openImage(fileName, &error)) {
@@ -448,11 +910,13 @@ void PicAnnotate::on_actionOpen_Image_triggered()
 void PicAnnotate::on_actionOpen_Video_triggered()
 {
     const QString fileName = QFileDialog::getOpenFileName(
-        this, "Select a Video", QDir::homePath(), "Video Files (*.mp4 *.avi *.mov *.mkv)");
+        this, "Select a Video", RecentPaths::dir(RecentPaths::Videos),
+        "Video Files (*.mp4 *.avi *.mov *.mkv)");
     if (fileName.isEmpty()) {
         qDebug() << "No video selected";
         return;
     }
+    RecentPaths::remember(RecentPaths::Videos, fileName);
 
     QString error;
     if (!project.openVideo(fileName, &error)) {
@@ -466,18 +930,24 @@ void PicAnnotate::on_actionOpen_Video_triggered()
 void PicAnnotate::on_actionOpen_Annotation_triggered()
 {
     const QString annotationPath = QFileDialog::getOpenFileName(
-        this, "Select Annotation JSON", QDir::homePath(), "Annotation Files (*.json)");
+        this, "Select Annotation JSON", RecentPaths::dir(RecentPaths::Annotations),
+        "Annotation Files (*.json)");
     if (annotationPath.isEmpty()) {
         qDebug() << "No annotation file selected";
         return;
     }
+    RecentPaths::remember(RecentPaths::Annotations, annotationPath);
 
+    // The matching video usually sits beside its annotations, so offer that
+    // folder first and only fall back to wherever videos were last picked.
     const QString videoPath = QFileDialog::getOpenFileName(
-        this, "Select Matching Video", QDir::homePath(), "Video Files (*.mp4 *.avi *.mov *.mkv)");
+        this, "Select Matching Video", QFileInfo(annotationPath).absolutePath(),
+        "Video Files (*.mp4 *.avi *.mov *.mkv)");
     if (videoPath.isEmpty()) {
         qDebug() << "No video selected";
         return;
     }
+    RecentPaths::remember(RecentPaths::Videos, videoPath);
 
     QString error;
     if (!project.openDataset(videoPath, annotationPath, &error)) {
@@ -593,6 +1063,11 @@ void PicAnnotate::onDrawToolTriggered()
             other->setChecked(false);
     }
 
+    // SAM is in the same exclusive group even though it is wired separately;
+    // unchecking it here also shuts the controller down through its toggled().
+    if (action->isChecked() && ui->actionSAM_Segment->isChecked())
+        ui->actionSAM_Segment->setChecked(false);
+
     auto mode = AnnotationGraphicsView::DrawMode::None;
     if (action->isChecked()) {
         if (action == ui->actionRectBox)
@@ -635,9 +1110,11 @@ void PicAnnotate::on_actionShow_Keypoint_Names_toggled(bool checked)
 void PicAnnotate::on_actionSave_triggered()
 {
     const QString filePath = QFileDialog::getSaveFileName(
-        this, "Save Project", QDir::homePath(), "PicAnnotate Project (*.json)");
+        this, "Save Project", RecentPaths::dir(RecentPaths::Projects),
+        "PicAnnotate Project (*.json)");
     if (filePath.isEmpty())
         return;
+    RecentPaths::remember(RecentPaths::Projects, filePath);
 
     QString error;
     if (!project.save(filePath, &error))
@@ -680,6 +1157,45 @@ void PicAnnotate::on_actionClear_Frame_Annotations_triggered()
         return;
 
     annotations->clearFrame(frameIndex);
+}
+
+void PicAnnotate::on_actionModel_Manager_triggered()
+{
+    ModelManagerDialog dialog(this);
+    dialog.exec();
+}
+
+void PicAnnotate::on_actionCreate_Dataset_triggered()
+{
+    DatasetWizard wizard(this);
+    if (wizard.exec() != QDialog::Accepted)
+        return;
+
+    const QString imageDirectory = wizard.imageDirectory();
+    if (imageDirectory.isEmpty())
+        return;
+
+    QString error;
+    if (!project.openFolder(imageDirectory, &error)) {
+        QMessageBox::warning(this, "Create Dataset",
+                             QString("The frames were extracted to\n%1\n\nbut the folder could "
+                                     "not be opened: %2")
+                                 .arg(imageDirectory, error));
+        return;
+    }
+
+    onSourceOpened();
+    statusBar()->showMessage(QString("Dataset ready — %1 frame(s) from %2 source(s).")
+                                 .arg(wizard.report().framesWritten)
+                                 .arg(wizard.report().sourcesProcessed),
+                             8000);
+
+    if (wizard.shouldAutoAnnotate()) {
+        // Straight into the existing batch path, so the results land in the
+        // prediction layer and still have to be reviewed before they count.
+        predictionDock->raise();
+        onRunModelOnAllFramesRequested();
+    }
 }
 
 void PicAnnotate::onFileListContextMenuRequested(const QPoint &pos)

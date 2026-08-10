@@ -4,6 +4,9 @@
 #include <QApplication>
 #include <QLocale>
 #include <QTranslator>
+#include <QtGlobal>
+
+#include <opencv2/core/utils/logger.hpp>
 
 /**
 + * Main function that initializes the application, sets up the translator for internationalization,
@@ -18,6 +21,13 @@
 + */
 int main(int argc, char *argv[])
 {
+    // OpenCV logs at INFO by default here, so every plugin probe and every ONNX
+    // node it parses lands in the console and buries the application's own
+    // output. Warnings and above are the level worth reading. OPENCV_LOG_LEVEL
+    // is OpenCV's own override, so anyone who set it deliberately keeps it.
+    if (qEnvironmentVariableIsEmpty("OPENCV_LOG_LEVEL"))
+        cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_WARNING);
+
     QApplication a(argc, argv);
 
     // QSettings keys off these, and the main window stores its panel layout there.

@@ -1,6 +1,7 @@
 #include "exportdatasetdialog.h"
 
 #include "../io/formatregistry.h"
+#include "recentpaths.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -119,11 +120,14 @@ void ExportDatasetDialog::onFormatChanged()
 
 void ExportDatasetDialog::onBrowseClicked()
 {
-    const QString start = m_outputEdit->text().isEmpty() ? QDir::homePath() : m_outputEdit->text();
+    const QString start = m_outputEdit->text().isEmpty() ? RecentPaths::dir(RecentPaths::Exports)
+                                                         : m_outputEdit->text();
     const QString directory = QFileDialog::getExistingDirectory(
         this, QStringLiteral("Select Export Folder"), start, QFileDialog::ShowDirsOnly);
-    if (!directory.isEmpty())
+    if (!directory.isEmpty()) {
         m_outputEdit->setText(directory);
+        RecentPaths::remember(RecentPaths::Exports, directory);
+    }
 }
 
 void ExportDatasetDialog::validate()

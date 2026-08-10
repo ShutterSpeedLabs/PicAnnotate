@@ -2,4 +2,7 @@
     <qresource prefix="/theme">
         <file alias="theme.qss">resources/theme.qss</file>
     </qresource>
+    <qresource prefix="/ai">
+        <file alias="models.json">resources/ai/models.json</file>
+    </qresource>
 </RCC>
